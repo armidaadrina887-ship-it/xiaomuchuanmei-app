@@ -68,7 +68,7 @@ if generate_btn:
     col3.metric("识别行业", INDUSTRY_NAMES.get(prompt_file, '通用'))
 
     if not client['name'] and not client['company']:
-        st.error("未能识别出客户姓名或店铺，请检查信息表格式（需含"出镜称呼：XXX"等字段）")
+        st.error("未能识别出客户姓名或店铺，请检查信息表格式（需含\"出镜称呼：XXX\"等字段）")
         st.stop()
 
     # 生成
