@@ -1,0 +1,52 @@
+{
+  "routing_rules": {
+    "家装": "jiazhuang.md",
+    "装修": "jiazhuang.md",
+    "室内设计": "jiazhuang.md",
+    "软装": "jiazhuang.md",
+    "家居": "jiazhuang.md",
+
+    "餐饮": "canyin.md",
+    "餐厅": "canyin.md",
+    "饭店": "canyin.md",
+    "面馆": "canyin.md",
+    "烧烤": "canyin.md",
+    "火锅": "canyin.md",
+    "奶茶": "canyin.md",
+    "咖啡": "canyin.md",
+    "小吃": "canyin.md",
+    "食堂": "canyin.md",
+    "私房菜": "canyin.md",
+
+    "美发": "meiiye.md",
+    "美甲": "meiiye.md",
+    "美睫": "meiiye.md",
+    "皮肤管理": "meiiye.md",
+    "美业": "meiiye.md",
+    "纹绣": "meiiye.md",
+    "SPA": "meiiye.md",
+    "按摩": "meiiye.md",
+    "美容": "meiiye.md",
+    "理发": "meiiye.md",
+
+    "酒店": "jiudian.md",
+    "宴席": "jiudian.md",
+    "婚宴": "jiudian.md",
+    "宴会": "jiudian.md",
+    "酒楼": "jiudian.md",
+    "会所": "jiudian.md",
+    "寿宴": "jiudian.md",
+
+    "default": "general.md"
+  },
+
+  "industry_keywords_for_detection": {
+    "jiazhuang": ["装修", "家装", "施工", "室内", "软装", "设计师", "工地", "材料", "瓷砖", "水电"],
+    "canyin": ["餐", "饭", "菜", "吃", "食", "厨", "锅", "面", "烤", "饮品", "外卖"],
+    "meiiye": ["美发", "美甲", "美睫", "皮肤", "纹绣", "发型", "护肤", "salon", "SPA", "美容"],
+    "jiudian": ["酒店", "宴席", "婚宴", "宴会", "包厢", "席位", "满月", "寿宴", "会所"]
+  },
+
+  "version": "1.0",
+  "last_updated": "2026-04-04"
+}
