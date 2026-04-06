@@ -33,23 +33,18 @@ def difficulty_style(d):
 
 # ── 口吻规范 ─────────────────────────────────────
 
-# ── 违禁词库（程序级扫描，不依赖AI）────────────────
-FORBIDDEN_WORDS = {
-    'all': [
-        # 极限词
-        "唯一", "绝对", "行业第一", "当地第一", "无与伦比", "史上最强",
-        "行业领先", "绝对放心", "绝对保证", "最好", "最优质", "最专业",
-        "最实惠", "最高端", "最权威", "最正确",
-        # 套话
-        "专业团队", "匠心", "初心", "情怀", "全程无忧",
-        "超高性价比", "良心价格", "值得信赖",
-    ],
-    'jiazhuang': ["无甲醛", "零甲醛", "无毒", "环保认证"],
-    'canyin':    ["纯天然", "无添加", "祖传秘方"],
-    'meiiye':    ["根治", "治愈", "无副作用"],
-    'jiudian':   [],
-    'general':   [],
-}
+# ── 违禁词库（程序级扫描）────────────────────────────
+_FW_PATH = PROMPTS_DIR / 'forbidden_words.json'
+_FW_DATA  = json.loads(_FW_PATH.read_text(encoding='utf-8')) if _FW_PATH.exists() else {}
+_FW_ROUTING = _FW_DATA.get('_routing', {})
+
+def _get_industry_keys(client_text: str) -> list:
+    """根据客户信息文本，返回匹配的违禁词分类key列表"""
+    keys = []
+    for kw, cat in _FW_ROUTING.items():
+        if kw in client_text and cat not in keys:
+            keys.append(cat)
+    return keys
 
 # 禁止开场词（程序级检测，触发自动重写）
 FORBIDDEN_OPENING_PATTERNS = [
@@ -63,10 +58,20 @@ SCENE_FORBIDDEN_PERSONS = [
     "助理", "工人", "师傅们", "我们团队",
 ]
 
-def scan_forbidden_words(scripts, prompt_file):
+def scan_forbidden_words(scripts, prompt_file, industry_keys=None):
     """返回违规列表 [{'script': 条号, 'word': 违禁词}]"""
-    industry = prompt_file.replace('.md', '')
-    words = FORBIDDEN_WORDS.get('all', []) + FORBIDDEN_WORDS.get(industry, [])
+    # 通用词
+    words = list(_FW_DATA.get('all', []))
+    # 按行业路由加载专项词
+    for key in (industry_keys or []):
+        words += _FW_DATA.get(key, [])
+    # 旧有 prompt_file 映射（兼容）
+    legacy = {
+        'jiazhuang': ["无甲醛", "零甲醛", "无毒"],
+        'canyin':    ["纯天然", "无添加", "祖传秘方"],
+    }
+    words += legacy.get(prompt_file.replace('.md', ''), [])
+
     violations = []
     for s in scripts:
         full_text = s.get('title', '') + s.get('tips', '') + ''.join(
@@ -306,8 +311,9 @@ def build_client(fields):
 
     is_b2b = 'B' in b_or_c.upper() and 'C' not in b_or_c.upper()
 
-    detect_text = f"{shop} {main_biz} {product}"
+    detect_text = f"{shop} {main_biz} {product} {feature} {identity}"
     prompt_file = detect_industry(detect_text)
+    industry_keys = _get_industry_keys(detect_text)
 
     msg = f"""以下是客户信息，请生成30条短视频分镜脚本。
 
@@ -342,12 +348,13 @@ def build_client(fields):
     company = shop or main_biz or name
 
     client = {
-        'id':           re.sub(r'\W', '', name)[:8],
-        'name':         name,
-        'company':      company,
-        'location':     f"{location} {shop_pos}".strip(),
-        'prompt_file':  prompt_file,
-        'user_message': msg,
+        'id':            re.sub(r'\W', '', name)[:8],
+        'name':          name,
+        'company':       company,
+        'location':      f"{location} {shop_pos}".strip(),
+        'prompt_file':   prompt_file,
+        'industry_keys': industry_keys,
+        'user_message':  msg,
     }
     return client, prompt_file
 
@@ -451,11 +458,22 @@ def generate_scripts(client, api_key, progress_callback=None):
                 for i, o in enumerate(batch_items)
             )
 
+        # 行业专项违禁词注入
+        industry_forbidden = ""
+        ikeys = client.get('industry_keys', [])
+        if ikeys:
+            extra_words = []
+            for k in ikeys:
+                extra_words += _FW_DATA.get(k, [])
+            if extra_words:
+                industry_forbidden = "\n\n【本行业专项违禁词 — 以下词绝对不能出现在口播或场景描述中】\n" + "、".join(extra_words[:40])
+
         batch_msg = (
             base_msg
             + outline_text
             + anti_repeat
             + RULES_V2          # 每批重注入完整规则包
+            + industry_forbidden
             + batch_outline
             + f"""
 
@@ -489,7 +507,7 @@ def generate_scripts(client, api_key, progress_callback=None):
 
     # ── 阶段三：程序级扫描 ─────────────────────────────
     opening_violations = scan_forbidden_openings(all_scripts)
-    word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'])
+    word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'], client.get('industry_keys', []))
     scene_violations   = scan_scene_persons(all_scripts)
 
     # 合并需要重写的条号
@@ -505,7 +523,7 @@ def generate_scripts(client, api_key, progress_callback=None):
         )
         # 重写后重新扫描一次
         opening_violations = scan_forbidden_openings(all_scripts)
-        word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'])
+        word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'], client.get('industry_keys', []))
 
     if progress_callback:
         progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")

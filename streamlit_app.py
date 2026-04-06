@@ -17,8 +17,8 @@ st.set_page_config(
 
 col_title, col_ver = st.columns([5, 1])
 col_title.title("🎬 晓牧传媒 · AI文案生成系统")
-col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.0</span>", unsafe_allow_html=True)
-st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成（三层防崩）→ 违禁词扫描 → 下载Word")
+col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.1</span>", unsafe_allow_html=True)
+st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
 # 优先从 Streamlit secrets 读取，其次从环境变量
@@ -68,6 +68,9 @@ if generate_btn:
     col1.metric("主理人", client['name'] or "未识别")
     col2.metric("品牌/店铺", client['company'][:10] if client['company'] else "未识别")
     col3.metric("识别行业", INDUSTRY_NAMES.get(prompt_file, '通用'))
+    ikeys = client.get('industry_keys', [])
+    if ikeys:
+        st.info(f"🔍 检测到行业违禁词分类：{' / '.join(ikeys)}，已自动加载专项词库")
 
     if not client['name'] and not client['company']:
         st.error("未能识别出客户姓名或店铺，请检查信息表格式（需含\"出镜称呼：XXX\"等字段）")
