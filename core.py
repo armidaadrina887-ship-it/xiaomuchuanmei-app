@@ -35,15 +35,33 @@ def difficulty_style(d):
 
 # ── 违禁词库（程序级扫描，不依赖AI）────────────────
 FORBIDDEN_WORDS = {
-    'all':       ["无与伦比", "史上最强", "行业领先", "行业第一", "绝对第一",
-                  "专业团队", "匠心", "初心", "情怀", "全程无忧",
-                  "超高性价比", "良心价格", "值得信赖"],
+    'all': [
+        # 极限词
+        "唯一", "绝对", "行业第一", "当地第一", "无与伦比", "史上最强",
+        "行业领先", "绝对放心", "绝对保证", "最好", "最优质", "最专业",
+        "最实惠", "最高端", "最权威", "最正确",
+        # 套话
+        "专业团队", "匠心", "初心", "情怀", "全程无忧",
+        "超高性价比", "良心价格", "值得信赖",
+    ],
     'jiazhuang': ["无甲醛", "零甲醛", "无毒", "环保认证"],
     'canyin':    ["纯天然", "无添加", "祖传秘方"],
     'meiiye':    ["根治", "治愈", "无副作用"],
     'jiudian':   [],
     'general':   [],
 }
+
+# 禁止开场词（程序级检测，触发自动重写）
+FORBIDDEN_OPENING_PATTERNS = [
+    "大家好", "你好，我是", "欢迎大家", "今天给大家",
+    "欢迎来到", "我来给大家", "今天我来", "我在这里",
+]
+
+# 场景禁止出现的人物词（C2/C3规则）
+SCENE_FORBIDDEN_PERSONS = [
+    "团队成员", "设计师", "员工", "顾客", "客户", "年轻时", "同事",
+    "助理", "工人", "师傅们", "我们团队",
+]
 
 def scan_forbidden_words(scripts, prompt_file):
     """返回违规列表 [{'script': 条号, 'word': 违禁词}]"""
@@ -60,23 +78,67 @@ def scan_forbidden_words(scripts, prompt_file):
                 violations.append({'script': s.get('number', '?'), 'word': w})
     return violations
 
+def scan_forbidden_openings(scripts):
+    """检测开场套话，返回违规条号列表"""
+    violations = []
+    for s in scripts:
+        shots = s.get('shots', [])
+        if not shots:
+            continue
+        first_line = shots[0].get('dialogue', '')
+        first_12 = first_line[:12]
+        hit = any(p in first_12 for p in FORBIDDEN_OPENING_PATTERNS)
+        # 也检测 "我是老X / 我是小X" 格式
+        if not hit and re.match(r'^我是[\u4e00-\u9fff]{1,4}', first_line):
+            hit = True
+        if hit:
+            violations.append(s['number'])
+    return violations
+
+def scan_scene_persons(scripts):
+    """检测场景描述中出现的禁止人物词，返回违规详情"""
+    violations = []
+    for s in scripts:
+        for i, shot in enumerate(s.get('shots', [])):
+            scene = shot.get('scene', '')
+            for kw in SCENE_FORBIDDEN_PERSONS:
+                if kw in scene:
+                    violations.append({
+                        'script': s.get('number', '?'),
+                        'shot': i + 1,
+                        'keyword': kw,
+                    })
+                    break
+    return violations
+
+def extract_city(location_text):
+    """从完整地址中只提取城市/商圈名"""
+    if not location_text:
+        return location_text
+    # 去掉路/号/大厦/楼层等详细信息
+    clean = re.sub(r'(路|街|道|大道|大街)[\d零一二三四五六七八九十百\s]*号.*', '', location_text)
+    clean = re.sub(r'(大厦|广场|中心|楼|层|室|号楼|栋|幢|单元).*', '', clean)
+    clean = clean.strip()
+    return clean if clean else location_text
+
 # ── 规则包 v2.0（每批5条前重注入，防止规则衰减）───────
 RULES_V2 = """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【规则包 v2.0 — 本批生成前必须完整读取，每条脚本均适用】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-■ R1【开场钩子 — 违反此条全批作废重写】
-第一句必须从以下6个模板选一，填入具体内容后使用。禁止使用任何不在列表内的句式。
+■ R1【开场钩子】
+⚠️ 程序将在生成完毕后自动扫描所有开场。发现"大家好/我是XX/欢迎/我在这里"等套话，该条自动被退回重写。
+第一句必须从以下6个模板选一，填入具体内容后使用：
   模板A【悬念型】：「[具体时间/情境]，有件事我从没在镜头前说过——」
   模板B【冲突型】：「[具体事件]，让我[情绪词]，差点[具体后果]——」
   模板C【数字型】：「[精确数字]+[反常识结论]——」
   模板D【提问型】：「[做某件具体事]之前，你知道[具体问题]吗？」
   模板E【身份型】：仅限第1、2条。「[一个具体经历]——我叫[称呼]，做[行业]X年了。」
   模板F【场景型】：「[具体可感知的场景细节]，我发现了一件事——」
-  填入后自检：①≤20字 ②念出来是否自然 ③听完第一句是否想继续听。不过则换模板。
+  自检标准：①首句≤20字 ②读出来自然 ③听完想继续。不达标换模板。
 
-■ R2【出镜限制】只有主理人一人出镜。场景描述不得出现团队/设计师/员工/顾客出镜。客户故事只在口播说，镜头只拍主理人。
+■ R2【出镜限制】只有主理人一人出镜。场景描述禁止出现团队/设计师/员工/顾客出镜（程序会扫描场景描述关键词）。客户故事只在口播中说，镜头只拍主理人。
 
 ■ R3【场景可执行】限门店/工作室内部。一部手机可完成为标准。不得要求：无人机/轨道推车/多机位/专业打光/数控设备界面特写。
 
@@ -112,6 +174,61 @@ JSON_FORMAT = """
 ]
 每条6-8个镜头，口播约1分钟，30条角度全部不同。
 """
+
+# ── 自动重写：开场套话 + 违禁词（批量一次调用）────────
+def rewrite_violations(scripts, violation_numbers, system_prompt, api_key, client_name):
+    """对有开场套话或违禁词的脚本，批量重写违规部分"""
+    if not violation_numbers:
+        return scripts
+    violating = [s for s in scripts if s.get('number') in violation_numbers]
+    if not violating:
+        return scripts
+
+    api_client = openai.OpenAI(api_key=api_key, base_url="https://api.moonshot.cn/v1")
+    rewrite_msg = f"""以下脚本存在开场套话或违禁词，请逐条修正后返回。
+
+主理人称呼：{client_name}
+
+需要修正的脚本：
+{json.dumps(violating, ensure_ascii=False, indent=2)}
+
+修正规则：
+1. 开场违规（大家好/我是XX/欢迎）→ 第一个镜头dialogue必须改用6种模板之一：
+   A悬念「[时间/情境]，有件事我从没在镜头前说过——」
+   B冲突「[事件]，让我[情绪]，差点[后果]——」
+   C数字「[精确数字]+[反常识结论]——」
+   D提问「[做某事]之前，你知道[具体问题]吗？」
+   E身份「[一个具体经历]——我叫{client_name}，做[行业]X年了。」（仅限人设介绍条）
+   F场景「[具体场景细节]，我发现了一件事——」
+2. 违禁词（唯一/绝对/匠心/行业第一等）→ 替换成具体描述
+3. 除以上问题外，其余内容保持不变
+4. 输出格式：JSON数组，字段与输入完全一致，只输出修正后的脚本（不包含未修改的脚本）
+直接输出JSON数组，不要其他文字。"""
+
+    full_text = ""
+    try:
+        stream = api_client.chat.completions.create(
+            model="moonshot-v1-128k",
+            max_tokens=8000,
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": rewrite_msg},
+            ],
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                full_text += delta
+    except Exception:
+        return scripts  # 重写失败则保留原文
+
+    rewritten = extract_json_list(full_text)
+    if rewritten:
+        rewritten_map = {s.get('number'): s for s in rewritten}
+        return [rewritten_map.get(s['number'], s) for s in scripts]
+    return scripts
 
 # ── 行业识别 ─────────────────────────────────────
 
@@ -172,8 +289,8 @@ def build_client(fields):
     name     = get_field(fields, '出镜称呼', '主理人姓名', '姓名')
     age      = get_field(fields, '年龄')
     gender   = get_field(fields, '性别')
-    location = get_field(fields, '城市名字', '地点', '城市')
-    shop_pos = get_field(fields, '店铺位置', '位置')
+    location = extract_city(get_field(fields, '城市名字', '地点', '城市'))
+    shop_pos = extract_city(get_field(fields, '店铺位置', '位置'))
     shop     = get_field(fields, '店铺信息名称', '店名', '品牌名称', '公司名')
     hours    = get_field(fields, '营业时间')
     story    = get_field(fields, '创业经历', '入行故事', '故事')
@@ -371,19 +488,33 @@ def generate_scripts(client, api_key, progress_callback=None):
                     s['difficulty'] = '深度版'
             all_scripts.extend(parsed)
 
-    # ── 阶段三：程序级违禁词扫描 ─────────────────────
-    violations = scan_forbidden_words(all_scripts, client['prompt_file'])
-    if violations and progress_callback:
-        vlist = "、".join(f"第{v['script']}条[{v['word']}]" for v in violations[:6])
-        if len(violations) > 6:
-            vlist += f"等共{len(violations)}处"
-        progress_callback(0.92, f"⚠️ 违禁词扫描：{vlist}")
+    # ── 阶段三：程序级扫描 ─────────────────────────────
+    opening_violations = scan_forbidden_openings(all_scripts)
+    word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'])
+    scene_violations   = scan_scene_persons(all_scripts)
+
+    # 合并需要重写的条号
+    rewrite_numbers = set(opening_violations) | {v['script'] for v in word_violations}
+
+    # 触发自动重写（开场套话 + 违禁词）
+    if rewrite_numbers:
+        if progress_callback:
+            progress_callback(0.88, f"⚠️ 发现{len(rewrite_numbers)}条违规，正在自动重写...")
+        all_scripts = rewrite_violations(
+            all_scripts, rewrite_numbers,
+            system_prompt, api_key, client['name']
+        )
+        # 重写后重新扫描一次
+        opening_violations = scan_forbidden_openings(all_scripts)
+        word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'])
 
     if progress_callback:
         progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
 
     # 把违规信息附加到 client，供 streamlit 显示
-    client['violations'] = violations
+    client['violations']       = word_violations
+    client['scene_violations'] = scene_violations
+    client['opening_violations_remaining'] = opening_violations
     return all_scripts
 
 # ── Word 生成（返回字节流，适配Web下载）────────────

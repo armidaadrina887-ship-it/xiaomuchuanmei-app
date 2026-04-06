@@ -98,7 +98,18 @@ if generate_btn:
     violations = client.get('violations', [])
     if violations:
         vlist = "、".join(f"第{v['script']}条[{v['word']}]" for v in violations[:8])
-        st.warning(f"⚠️ 发现 {len(violations)} 处违禁词：{vlist}，建议人工复查后交付")
+        st.warning(f"⚠️ 违禁词（已重写后仍存在）：{vlist}，建议人工复查")
+
+    # 开场套话残留警告
+    opening_remaining = client.get('opening_violations_remaining', [])
+    if opening_remaining:
+        st.warning(f"⚠️ 以下条目开场仍有套话，请人工替换：第{'、'.join(str(n) for n in opening_remaining)}条")
+
+    # 场景人物警告（Patch 3）
+    scene_violations = client.get('scene_violations', [])
+    if scene_violations:
+        sv_list = "、".join(f"第{v['script']}条镜头{v['shot']}[{v['keyword']}]" for v in scene_violations[:6])
+        st.warning(f"⚠️ 场景描述出现禁止人物词：{sv_list}，需人工修改场景描述")
 
     # 生成 Word 字节流
     try:
