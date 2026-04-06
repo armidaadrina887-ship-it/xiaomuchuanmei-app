@@ -15,8 +15,10 @@ st.set_page_config(
     layout="centered",
 )
 
-st.title("🎬 晓牧传媒 · AI文案生成系统")
-st.caption("粘贴客户信息表 → 自动识别行业 → 生成30条分镜脚本 → 下载Word")
+col_title, col_ver = st.columns([5, 1])
+col_title.title("🎬 晓牧传媒 · AI文案生成系统")
+col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.0</span>", unsafe_allow_html=True)
+st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成（三层防崩）→ 违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
 # 优先从 Streamlit secrets 读取，其次从环境变量
@@ -91,6 +93,12 @@ if generate_btn:
 
     progress_bar.progress(1.0)
     status_text.success(f"✅ 生成完成！共 {len(scripts)} 条脚本")
+
+    # 违禁词警告
+    violations = client.get('violations', [])
+    if violations:
+        vlist = "、".join(f"第{v['script']}条[{v['word']}]" for v in violations[:8])
+        st.warning(f"⚠️ 发现 {len(violations)} 处违禁词：{vlist}，建议人工复查后交付")
 
     # 生成 Word 字节流
     try:

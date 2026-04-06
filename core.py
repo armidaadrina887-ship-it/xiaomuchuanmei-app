@@ -33,39 +33,66 @@ def difficulty_style(d):
 
 # ── 口吻规范 ─────────────────────────────────────
 
-STYLE_GUIDE = """
-【诺词助手 · 强制规则 v1.0 — 所有规则必须严格遵守，违反即重写】
+# ── 违禁词库（程序级扫描，不依赖AI）────────────────
+FORBIDDEN_WORDS = {
+    'all':       ["无与伦比", "史上最强", "行业领先", "行业第一", "绝对第一",
+                  "专业团队", "匠心", "初心", "情怀", "全程无忧",
+                  "超高性价比", "良心价格", "值得信赖"],
+    'jiazhuang': ["无甲醛", "零甲醛", "无毒", "环保认证"],
+    'canyin':    ["纯天然", "无添加", "祖传秘方"],
+    'meiiye':    ["根治", "治愈", "无副作用"],
+    'jiudian':   [],
+    'general':   [],
+}
 
-═══ A 内容生成规则 ═══
-A1【数量强制】必须输出完整30条，不得少于30条，不可截断或跳过。
-A2【选题唯一】30条每条核心选题角度必须唯一。若任意两条核心事件+核心观点相同，必须重写其中一条。
-A3【零重复句】任意两条不得出现完全相同的句子（含结尾语）。相似度超过80%必须改写。
-A4【人设置顶】第1条和第2条必须是人设介绍类视频，帮新粉丝认识主理人。人设介绍类仍需钩子开场，介绍内容放第二句之后。
-A5【统一称呼】从客户资料中提取主理人姓名/小名/代号，全文统一使用，不得混用或遗漏。
-A6【类型均衡】30条必须包含：故事型≥5条、产品型≥5条、幕后型≥4条、痛点型≥5条、互动型≥5条（互动型含问答/投票/选择题格式）。
-A7【人设兜底】若客户未提供人设，自动匹配行业通用人设框架（资深从业者/本地口碑商家/手艺人等），不得输出空洞内容。
+def scan_forbidden_words(scripts, prompt_file):
+    """返回违规列表 [{'script': 条号, 'word': 违禁词}]"""
+    industry = prompt_file.replace('.md', '')
+    words = FORBIDDEN_WORDS.get('all', []) + FORBIDDEN_WORDS.get(industry, [])
+    violations = []
+    for s in scripts:
+        full_text = s.get('title', '') + s.get('tips', '') + ''.join(
+            shot.get('dialogue', '') + shot.get('scene', '')
+            for shot in s.get('shots', [])
+        )
+        for w in words:
+            if w in full_text:
+                violations.append({'script': s.get('number', '?'), 'word': w})
+    return violations
 
-═══ B 开场钩子规则 ═══
-B1【钩子禁令】绝对禁止以【大家好/我是XX/我在XX/我做了XX年/今天我要和大家……】开场。第一句必须是：冲突/痛点/数字/反常识/悬念，五选一。
-B2【钩子多样】同类开场结构（如【你知道吗】）在30条中不得连续重复超过3次。
-正确示例：「那年我被客户投诉，差点关门……」「这个细节90%的人都没注意过——」「花了两万装修，安装那天当场崩溃了」
+# ── 规则包 v2.0（每批5条前重注入，防止规则衰减）───────
+RULES_V2 = """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【规则包 v2.0 — 本批生成前必须完整读取，每条脚本均适用】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-═══ C 拍摄场景规则 ═══
-C1【场地限定】拍摄地点默认限制在客户门店/工作室/公司内部。不得要求外景，除非客户资料写明【可外拍】。
-C2【单人出镜】默认只有主理人一人出镜，不得安排第二人出镜，除非客户资料写明。
-C3【客户不出镜】消费者/客户不得作为主要拍摄对象。若需穿插客户画面，只能用1个镜头且注明【简短带过】。
-C4【回忆禁止复刻】需要回忆过去场景时，只通过主理人口播讲述，不得要求镜头还原历史场景。
-C5【拍摄可执行】所有镜头用一部手机即可完成。不得要求无人机、多机位、轨道推车、专业打光架设等高难度拍摄。
+■ R1【开场钩子 — 违反此条全批作废重写】
+第一句必须从以下6个模板选一，填入具体内容后使用。禁止使用任何不在列表内的句式。
+  模板A【悬念型】：「[具体时间/情境]，有件事我从没在镜头前说过——」
+  模板B【冲突型】：「[具体事件]，让我[情绪词]，差点[具体后果]——」
+  模板C【数字型】：「[精确数字]+[反常识结论]——」
+  模板D【提问型】：「[做某件具体事]之前，你知道[具体问题]吗？」
+  模板E【身份型】：仅限第1、2条。「[一个具体经历]——我叫[称呼]，做[行业]X年了。」
+  模板F【场景型】：「[具体可感知的场景细节]，我发现了一件事——」
+  填入后自检：①≤20字 ②念出来是否自然 ③听完第一句是否想继续听。不过则换模板。
 
-═══ D 内容表达规则 ═══
-D1【极限词禁用】禁止出现：最、第一、唯一、绝对、100%、无与伦比、史上最强、无可替代等夸大词。
-D2【行业违禁词】医疗禁用【治愈/根治】，食品禁用【纯天然/无添加】，教育禁用【保过/保分/承诺分数】，建材禁用【无甲醛/零甲醛/无毒】。
-D3【口语化】口播每句控制在25字以内，不得出现书面长句、排比堆砌、四字成语连用。用说话节奏写，不用写作节奏写。
-D4【地址模糊化】不得出现完整地址、门牌号、楼层号，只允许出现城市名或商圈名。
-D5【结尾强关联】结尾禁止套话（【欢迎关注/我们在这里等你/一起打造理想家园】等），必须与该条内容直接关联，或用互动问句收尾。
-D6【引导强度】结尾以【评论区聊聊/有问题私信我/感兴趣来看看】为上限，不得出现【立刻下单/马上联系】等强销售语。
+■ R2【出镜限制】只有主理人一人出镜。场景描述不得出现团队/设计师/员工/顾客出镜。客户故事只在口播说，镜头只拍主理人。
 
-禁止词（通用）：专业团队/匠心/用心/初心/情怀/顶级/高端/奢华/超高性价比/良心价格/全程无忧/让您满意/不踩雷/值得信赖
+■ R3【场景可执行】限门店/工作室内部。一部手机可完成为标准。不得要求：无人机/轨道推车/多机位/专业打光/数控设备界面特写。
+
+■ R4【回忆处理】涉及过去的场景只通过主理人口播讲述。不得要求镜头还原历史/回忆画面。正确写法：「主理人站在工作室，讲述过去的经历，镜头对着他」
+
+■ R5【口语化】每句口播≤25字，超过必须拆成两句。禁止书面排比句。读出来超过3秒的单句必须断句。
+
+■ R6【违禁词】全行业禁：无与伦比/史上最强/行业领先/行业第一/专业团队/匠心/初心。
+  建材额外禁：无甲醛/零甲醛/无毒。食品额外禁：纯天然/无添加/祖传秘方。
+  医疗额外禁：根治/治愈/无副作用。教育额外禁：保过/保分/承诺成绩。
+
+■ R7【结尾引导】禁套话：等你/理想家园/一起打造/欢迎关注/我在这里等你。
+  结尾必须是：①与本条内容强关联的互动问句 ②轻量行动引导（私信/评论） ③无引导自然收尾。
+
+■ R8【地址】禁止完整街道/门牌号/楼层号。只允许城市名或知名商圈名。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 JSON_FORMAT = """
@@ -190,11 +217,11 @@ def build_client(fields):
         msg += "内容角度覆盖：创始人故事、商业模式/加盟、行业分析、门店展示、痛点避坑、招募互动（30条不重复）\n"
         type_hint = "type只能是：创始人/故事类、商业模式/加盟类、行业分析类、门店展示类、痛点/避坑类、招募/互动类"
     else:
-        msg += "内容角度覆盖：故事型（人设/创业故事）、产品型（核心产品卖点）、幕后型（制作/工艺/流程）、痛点型（行业痛点/避坑）、互动型（互动问答/投票/口碑），30条角度完全不同。\n"
-        msg += "分布要求：第1条和第2条必须是故事型（人设介绍），故事型≥5条，产品型≥5条，幕后型≥4条，痛点型≥5条，互动型≥5条。\n"
-        type_hint = "type只能是：故事型、产品型、幕后型、痛点型、互动型"
+        msg += "内容角度覆盖：故事型（人设/创业故事）、产品型（核心产品卖点）、幕后型（制作/工艺/流程）、痛点型（行业痛点/避坑）、互动型（互动问答/投票）、氛围型（场景/日常/感受），30条角度完全不同。\n"
+        msg += "分布：第1条和第2条必须是故事型（人设介绍），故事型≥6条，产品型≥5条，幕后型≥5条，痛点型≥5条，互动型≥5条，氛围型≥4条。\n"
+        type_hint = "type只能是：故事型、产品型、幕后型、痛点型、互动型、氛围型"
 
-    msg += STYLE_GUIDE + "\n" + type_hint + "\n" + JSON_FORMAT
+    msg += "\n" + type_hint
 
     company = shop or main_biz or name
 
@@ -225,14 +252,14 @@ def extract_json_list(text):
 
 def generate_scripts(client, api_key, progress_callback=None):
     """
-    生成30条脚本。
-    progress_callback(step, message) 用于向UI汇报进度，可选。
+    v2.0 三层防崩架构：大纲 → 6批×5条（每批重注入规则）→ 违禁词扫描
+    progress_callback(pct, message) 用于向UI汇报进度，可选。
     """
     api_client = openai.OpenAI(api_key=api_key, base_url="https://api.moonshot.cn/v1")
     system_prompt = load_prompt(client['prompt_file'])
     base_msg = client['user_message']
 
-    def kimi_call(user_msg, label, max_tokens=16000):
+    def kimi_call(user_msg, max_tokens=8000):
         full_text = ""
         stream = api_client.chat.completions.create(
             model="moonshot-v1-128k",
@@ -250,38 +277,74 @@ def generate_scripts(client, api_key, progress_callback=None):
                 full_text += delta
         return full_text
 
-    # 第一步：生成大纲
+    # ── 阶段一：生成30条选题大纲 ─────────────────────
     if progress_callback:
-        progress_callback(0.1, "正在生成30条标题大纲...")
+        progress_callback(0.05, "阶段一：正在生成30条选题大纲...")
+
     outline_msg = base_msg + """
 
-第一步：先列出30条的【标题】和【类型】，严格遵守以下分布要求：
-- 第1条和第2条必须是故事型（人设介绍）
-- 故事型≥5条、产品型≥5条、幕后型≥4条、痛点型≥5条、互动型≥5条
-- 30条选题角度完全不同，不得出现两条核心事件+核心观点相同的情况
-- 开场禁止套话（大家好/我是XX），每条第一句必须是冲突/痛点/数字/反常识/悬念之一
-输出格式（JSON数组）：
-[{"number":1,"type":"类型","title":"标题"},...]
-不要输出其他内容。"""
-    raw_outline = kimi_call(outline_msg, "大纲", max_tokens=3000)
+生成30条选题大纲，严格遵守：
+- 第1条和第2条必须是故事型（人设介绍，写清楚讲哪个具体经历）
+- 分布：故事型≥6条、产品型≥5条、幕后型≥5条、痛点型≥5条、互动型≥5条、氛围型≥4条
+- 30条核心角度完全不同，不得有两条讲同一件具体事件
+- 标题要说清楚讲什么具体事件，不能是泛泛概念
+输出格式（JSON数组，不要其他文字）：
+[{"number":1,"type":"故事型","title":"说清楚讲哪个具体事件的标题"},...]"""
+
+    raw_outline = kimi_call(outline_msg, max_tokens=3000)
     outline = extract_json_list(raw_outline)
+
     outline_text = ""
     if outline:
-        outline_text = "\n\n【已确定的30条标题大纲】\n" + "\n".join(
-            f"{o.get('number',i+1)}. [{o.get('type','')}] {o.get('title','')}"
+        outline_text = "\n\n【已确定30条选题大纲】\n" + "\n".join(
+            f"{o.get('number', i+1):02d}. [{o.get('type','')}] {o.get('title','')}"
             for i, o in enumerate(outline)
         )
 
-    # 第二步：分两批生成完整脚本
+    # ── 阶段二：6批×5条，每批重注入规则包 ────────────
     all_scripts = []
-    for idx, (batch_start, batch_end) in enumerate([(1, 15), (16, 30)]):
-        progress = 0.3 + idx * 0.35
-        if progress_callback:
-            progress_callback(progress, f"正在生成第{batch_start}-{batch_end}条脚本...")
-        batch_msg = base_msg + outline_text + f"""
 
-第二步：请生成第{batch_start}条到第{batch_end}条的完整分镜脚本（共{batch_end-batch_start+1}条）。
-严格按照大纲中对应编号的标题和类型来写，每条6-8个镜头，口播约1分钟。
+    for batch_idx in range(6):
+        batch_start = batch_idx * 5 + 1
+        batch_end   = batch_start + 4
+        progress    = 0.1 + batch_idx * 0.13
+
+        if progress_callback:
+            progress_callback(progress, f"阶段二：正在生成第{batch_start}–{batch_end}条（批次{batch_idx+1}/6）...")
+
+        # 防重复摘要：把已生成条目的标题+开场第一句传给下一批
+        anti_repeat = ""
+        if all_scripts:
+            anti_repeat = "\n\n【防重复 — 以下条目已生成，本批禁止重复其核心事件或开场句式】\n" + "\n".join(
+                "第{}条: [{}] {} | 开场: {}".format(
+                    s['number'], s.get('type', ''),
+                    s.get('title', ''),
+                    (s.get('shots') or [{}])[0].get('dialogue', '')[:20]
+                )
+                for s in all_scripts
+            )
+
+        # 本批大纲条目
+        batch_outline = ""
+        if outline:
+            batch_items = outline[batch_idx * 5: (batch_idx + 1) * 5]
+            batch_outline = "\n\n【本批大纲（第{}-{}条）】\n".format(batch_start, batch_end) + "\n".join(
+                "{:02d}. [{}] {}".format(
+                    o.get('number', batch_start + i), o.get('type', ''), o.get('title', '')
+                )
+                for i, o in enumerate(batch_items)
+            )
+
+        batch_msg = (
+            base_msg
+            + outline_text
+            + anti_repeat
+            + RULES_V2          # 每批重注入完整规则包
+            + batch_outline
+            + f"""
+
+现在生成第{batch_start}条到第{batch_end}条完整分镜脚本（共5条）。
+严格按大纲标题和类型，每条6-8个镜头，口播约1分钟。
 直接输出JSON数组，不要其他文字，不要markdown代码块：
 [
   {{
@@ -293,11 +356,13 @@ def generate_scripts(client, api_key, progress_callback=None):
       {{"scene": "场景描述", "dialogue": "口播台词"}},
       {{"scene": "场景描述", "dialogue": "口播台词"}}
     ],
-    "tips": "拍摄建议"
+    "tips": "拍摄建议（门店内/手机可拍）"
   }},
-  ...
+  ...共5条
 ]"""
-        raw = kimi_call(batch_msg, f"第{batch_start}-{batch_end}条", max_tokens=16000)
+        )
+
+        raw = kimi_call(batch_msg, max_tokens=8000)
         parsed = extract_json_list(raw)
         if parsed:
             for i, s in enumerate(parsed):
@@ -306,8 +371,19 @@ def generate_scripts(client, api_key, progress_callback=None):
                     s['difficulty'] = '深度版'
             all_scripts.extend(parsed)
 
+    # ── 阶段三：程序级违禁词扫描 ─────────────────────
+    violations = scan_forbidden_words(all_scripts, client['prompt_file'])
+    if violations and progress_callback:
+        vlist = "、".join(f"第{v['script']}条[{v['word']}]" for v in violations[:6])
+        if len(violations) > 6:
+            vlist += f"等共{len(violations)}处"
+        progress_callback(0.92, f"⚠️ 违禁词扫描：{vlist}")
+
     if progress_callback:
-        progress_callback(0.9, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
+        progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
+
+    # 把违规信息附加到 client，供 streamlit 显示
+    client['violations'] = violations
     return all_scripts
 
 # ── Word 生成（返回字节流，适配Web下载）────────────
