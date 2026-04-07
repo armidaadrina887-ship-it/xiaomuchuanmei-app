@@ -264,10 +264,22 @@ def rewrite_violations(scripts, violation_numbers, system_prompt, api_key, clien
 # ── 行业识别 ─────────────────────────────────────
 
 EXTRA_KEYWORDS = {
+    # 餐饮 — 具体菜品/食材/场景
     '牛排': 'canyin.md', '意面': 'canyin.md', '汉堡': 'canyin.md',
     '炸鸡': 'canyin.md', '披萨': 'canyin.md', '寿司': 'canyin.md',
     '甜品': 'canyin.md', '蛋糕': 'canyin.md', '炒饭': 'canyin.md',
+    '龙虾': 'canyin.md', '皮皮虾': 'canyin.md', '海鲜': 'canyin.md',
+    '螃蟹': 'canyin.md', '烤肉': 'canyin.md', '烤鱼': 'canyin.md',
+    '串串': 'canyin.md', '卤味': 'canyin.md', '卤肉': 'canyin.md',
+    '熟食': 'canyin.md', '江湖菜': 'canyin.md', '家常菜': 'canyin.md',
+    '炒菜': 'canyin.md', '米粉': 'canyin.md', '粉面': 'canyin.md',
+    '饺子': 'canyin.md', '包子': 'canyin.md', '馒头': 'canyin.md',
+    '日料': 'canyin.md', '中餐': 'canyin.md', '西餐': 'canyin.md',
+    '菜馆': 'canyin.md', '大排档': 'canyin.md', '夜宵': 'canyin.md',
+    '螺蛳粉': 'canyin.md', '猪脚': 'canyin.md', '糕点': 'canyin.md',
+    # 美业
     '剪发': 'meiiye.md', '发廊': 'meiiye.md', '护肤': 'meiiye.md',
+    # 家装
     '装修': 'jiazhuang.md', '设计': 'jiazhuang.md',
 }
 
@@ -338,7 +350,8 @@ def build_client(fields):
 
     is_b2b = 'B' in b_or_c.upper() and 'C' not in b_or_c.upper()
 
-    detect_text = f"{shop} {main_biz} {product} {feature} {identity}"
+    # 用所有字段值做识别，防止关键词出现在非预期字段里
+    detect_text = " ".join(str(v) for v in fields.values() if v)
     prompt_file = detect_industry(detect_text)
     industry_keys = _get_industry_keys(detect_text)
 
