@@ -17,7 +17,7 @@ st.set_page_config(
 
 col_title, col_ver = st.columns([5, 1])
 col_title.title("🎬 晓牧传媒 · AI文案生成系统")
-col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.2</span>", unsafe_allow_html=True)
+col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.3</span>", unsafe_allow_html=True)
 st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
