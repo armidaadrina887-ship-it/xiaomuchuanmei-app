@@ -17,7 +17,7 @@ st.set_page_config(
 
 col_title, col_ver = st.columns([5, 1])
 col_title.title("🎬 晓牧传媒 · AI文案生成系统")
-col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.5</span>", unsafe_allow_html=True)
+col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.6</span>", unsafe_allow_html=True)
 st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
@@ -108,11 +108,16 @@ if generate_btn:
     if opening_remaining:
         st.warning(f"⚠️ 以下条目开场仍有套话，请人工替换：第{'、'.join(str(n) for n in opening_remaining)}条")
 
-    # 场景人物警告（Patch 3）
+    # 场景人物警告
     scene_violations = client.get('scene_violations', [])
     if scene_violations:
         sv_list = "、".join(f"第{v['script']}条镜头{v['shot']}[{v['keyword']}]" for v in scene_violations[:6])
         st.warning(f"⚠️ 场景描述出现禁止人物词：{sv_list}，需人工修改场景描述")
+
+    # 「最」字替换统计
+    zui_replacements = client.get('zui_replacements', [])
+    if zui_replacements:
+        st.info(f"🔄 程序已自动替换「最」字 {len(zui_replacements)} 处（涉及{len(set(r['script'] for r in zui_replacements))}条脚本）")
 
     # 生成 Word 字节流
     try:

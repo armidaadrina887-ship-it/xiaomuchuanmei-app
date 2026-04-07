@@ -58,6 +58,111 @@ SCENE_FORBIDDEN_PERSONS = [
     "助理", "工人", "师傅们", "我们团队",
 ]
 
+# ── 程序级后处理：「最」字替换 ───────────────────────
+# 替换规则：最X → 替代表达，直接字符串替换，不依赖AI
+
+_ZUI_REPLACEMENTS = [
+    # 两字组合（优先匹配长词）
+    ("最好吃", "好吃"),
+    ("最好喝", "好喝"),
+    ("最新鲜", "很新鲜"),
+    ("最实惠", "划算"),
+    ("最便宜", "价格低"),
+    ("最贵",   "价格高"),
+    ("最香",   "很香"),
+    ("最辣",   "够辣"),
+    ("最甜",   "很甜"),
+    ("最快",   "够快"),
+    ("最慢",   "比较慢"),
+    ("最好",   "挺好"),
+    ("最差",   "比较差"),
+    ("最难",   "确实难"),
+    ("最简单", "比较简单"),
+    ("最重要", "很关键"),
+    ("最关键", "最核心的"),
+    ("最核心", "核心"),
+    ("最大的", "很大"),
+    ("最小的", "很小"),
+    ("最多",   "数量多"),
+    ("最少",   "数量少"),
+    ("最高",   "很高"),
+    ("最低",   "很低"),
+    ("最强",   "很强"),
+    ("最弱",   "比较弱"),
+    ("最专业", "够专业"),
+    ("最厉害", "很厉害"),
+    ("最靠谱", "靠谱"),
+    ("最真诚", "真诚"),
+    ("最透明", "透明"),
+    ("最放心", "放心"),
+    ("最安全", "安全"),
+    ("最稳",   "稳"),
+    ("最优质", "品质好"),
+    ("最高端", "比较高端"),
+    ("最高级", "比较高级"),
+    ("最受欢迎", "受欢迎"),
+    ("最受",   "很受"),
+    ("最爱",   "喜欢"),
+    ("最喜欢", "挺喜欢"),
+    ("最满意", "很满意"),
+    ("最担心", "很担心"),
+    ("最怕",   "最怕"),      # 保留：表达恐惧，不是吹嘘
+    ("最后",   "最后"),      # 保留：时间序列用词
+    ("最终",   "最终"),      # 保留：结果用词
+    ("最近",   "最近"),      # 保留：时间用词
+    ("最初",   "最初"),      # 保留：时间用词
+]
+
+# 需要保留的「最」（不替换）
+_ZUI_KEEP = {"最后", "最终", "最近", "最初", "最怕"}
+
+def post_process_scripts(scripts):
+    """程序级后处理：替换所有脚本中的违规「最」字组合"""
+    replacements_made = []
+
+    for s in scripts:
+        # 处理标题
+        title = s.get('title', '')
+        new_title = _apply_zui_replacements(title)
+        if new_title != title:
+            replacements_made.append({'script': s['number'], 'field': 'title', 'original': title})
+            s['title'] = new_title
+
+        # 处理每个镜头的口播和场景
+        for shot in s.get('shots', []):
+            for field in ('dialogue', 'scene'):
+                original = shot.get(field, '')
+                replaced = _apply_zui_replacements(original)
+                if replaced != original:
+                    replacements_made.append({'script': s['number'], 'field': field, 'original': original[:30]})
+                    shot[field] = replaced
+
+        # 处理拍摄建议
+        tips = s.get('tips', '')
+        new_tips = _apply_zui_replacements(tips)
+        if new_tips != tips:
+            s['tips'] = new_tips
+
+    return scripts, replacements_made
+
+
+def _apply_zui_replacements(text):
+    """对单段文本执行「最」字替换，保留白名单词"""
+    if '最' not in text:
+        return text
+    for keep in _ZUI_KEEP:
+        # 临时保护白名单词：用占位符替换
+        text = text.replace(keep, f'__KEEP_{keep}__')
+    for old, new in _ZUI_REPLACEMENTS:
+        text = text.replace(old, new)
+    # 清理残余的孤立「最」（前后都是中文字符）
+    text = re.sub(r'(?<=[\u4e00-\u9fff])最(?=[\u4e00-\u9fff])', '', text)
+    # 还原白名单词
+    for keep in _ZUI_KEEP:
+        text = text.replace(f'__KEEP_{keep}__', keep)
+    return text
+
+
 def scan_forbidden_words(scripts, prompt_file, industry_keys=None):
     """返回违规列表 [{'script': 条号, 'word': 违禁词}]"""
     # 通用词
@@ -583,13 +688,17 @@ def generate_scripts(client, api_key, progress_callback=None):
         opening_violations = scan_forbidden_openings(all_scripts)
         word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'], client.get('industry_keys', []))
 
+    # ── 阶段四：程序级后处理（最字替换）─────────────────
+    all_scripts, zui_replacements = post_process_scripts(all_scripts)
+
     if progress_callback:
         progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
 
     # 把违规信息附加到 client，供 streamlit 显示
-    client['violations']       = word_violations
-    client['scene_violations'] = scene_violations
-    client['opening_violations_remaining'] = opening_violations
+    client['violations']                    = word_violations
+    client['scene_violations']              = scene_violations
+    client['opening_violations_remaining']  = opening_violations
+    client['zui_replacements']              = zui_replacements
     return all_scripts
 
 # ── Word 生成（返回字节流，适配Web下载）────────────
