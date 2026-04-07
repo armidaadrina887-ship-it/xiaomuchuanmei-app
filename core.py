@@ -116,32 +116,145 @@ _ZUI_REPLACEMENTS = [
 # 需要保留的「最」（不替换）
 _ZUI_KEEP = {"最后", "最终", "最近", "最初", "最怕"}
 
-def post_process_scripts(scripts):
-    """程序级后处理：替换所有脚本中的违规「最」字组合"""
+# ── 词频限制表（全批合计超出次数则替换后续出现）──────
+_FREQ_LIMITS = {
+    '每一个': (3, '每个'),
+    '每一件': (3, '每件'),
+    '每一位': (3, '每位'),
+    '每一道': (3, '每道'),
+    '每一处': (3, '每处'),
+    '每一次': (3, '每次'),
+    '匠心':   (2, '认真'),
+    '追求':   (3, '要求'),
+    '坚持':   (4, '一直'),
+    '品质':   (5, '质量'),
+    '用心':   (3, '认真'),
+    '初心':   (2, '当初的想法'),
+    '情怀':   (1, '感情'),
+    '不仅仅是': (2, '不只是'),
+    '致力于': (2, '一直在做'),
+    '专注于': (2, '专门做'),
+    '赋能':   (1, '帮助'),
+    '全程无忧': (1, '放心交给我'),
+    '一站式': (1, '一条龙'),
+}
+
+# ── 结尾模式判定 ─────────────────────────────────────
+_HARD_ENDING_PATTERNS = [
+    '欢迎来', '私信我', '来店', '来尝', '来找我',
+    '来工作室', '来厂', '联系我', '扫码', '预约',
+    '点击主页', '主页预约', '来这里', '等你来',
+]
+_SOFT_ENDING_PATTERNS = [
+    '你觉得', '你遇到过', '你会选', '你怎么看',
+    '评论告诉', '说说你', '你有没有', '你呢',
+    '你有过这种', '你们那边', '你家',
+]
+
+def _classify_ending(dialogue: str) -> str:
+    for p in _HARD_ENDING_PATTERNS:
+        if p in dialogue:
+            return 'hard'
+    for p in _SOFT_ENDING_PATTERNS:
+        if p in dialogue:
+            return 'soft'
+    return 'natural'
+
+def _get_last_dialogue(script) -> str:
+    shots = script.get('shots', [])
+    for shot in reversed(shots):
+        d = shot.get('dialogue', '').strip()
+        if d:
+            return d
+    return ''
+
+def _clear_last_hard_ending(script):
+    """把最后一个镜头的硬引导词删掉，改为自然收尾"""
+    shots = script.get('shots', [])
+    for i in range(len(shots) - 1, -1, -1):
+        d = shots[i].get('dialogue', '')
+        if any(p in d for p in _HARD_ENDING_PATTERNS):
+            for p in _HARD_ENDING_PATTERNS:
+                d = d.replace(p, '')
+            # 清理多余标点
+            d = re.sub(r'[，。！、\s]+$', '。', d.strip())
+            shots[i]['dialogue'] = d
+            return
+
+def post_process_scripts(scripts, client_name=''):
+    """程序级后处理：最字替换 + 词频限制 + 结尾配额 + C2场景修正"""
     replacements_made = []
 
+    # ── Step 1: 「最」字替换 ──────────────────────────
     for s in scripts:
-        # 处理标题
-        title = s.get('title', '')
-        new_title = _apply_zui_replacements(title)
-        if new_title != title:
-            replacements_made.append({'script': s['number'], 'field': 'title', 'original': title})
-            s['title'] = new_title
-
-        # 处理每个镜头的口播和场景
+        for field_name, value in [('title', s.get('title', '')),
+                                   ('tips',  s.get('tips',  ''))]:
+            new_val = _apply_zui_replacements(value)
+            if new_val != value:
+                replacements_made.append({'script': s['number'], 'field': field_name, 'type': 'zui'})
+                s[field_name] = new_val
         for shot in s.get('shots', []):
             for field in ('dialogue', 'scene'):
                 original = shot.get(field, '')
                 replaced = _apply_zui_replacements(original)
                 if replaced != original:
-                    replacements_made.append({'script': s['number'], 'field': field, 'original': original[:30]})
+                    replacements_made.append({'script': s['number'], 'field': field, 'type': 'zui'})
                     shot[field] = replaced
 
-        # 处理拍摄建议
-        tips = s.get('tips', '')
-        new_tips = _apply_zui_replacements(tips)
-        if new_tips != tips:
-            s['tips'] = new_tips
+    # ── Step 2: 词频限制（全批统计超出则替换）──────────
+    # 收集全部口播+标题文本（按顺序）
+    word_counters = {w: 0 for w in _FREQ_LIMITS}
+    for s in scripts:
+        full_parts = [s.get('title', '')] + [
+            sh.get('dialogue', '') for sh in s.get('shots', [])
+        ]
+        for part_idx, part in enumerate(full_parts):
+            new_part = part
+            for word, (limit, replacement) in _FREQ_LIMITS.items():
+                while word in new_part:
+                    word_counters[word] += 1
+                    if word_counters[word] > limit:
+                        new_part = new_part.replace(word, replacement, 1)
+                        replacements_made.append({'script': s['number'], 'field': 'freq', 'type': word})
+                    else:
+                        break  # 不超出则保留，继续下一次统计
+            if new_part != part:
+                if part_idx == 0:
+                    s['title'] = new_part
+                else:
+                    s['shots'][part_idx - 1]['dialogue'] = new_part
+
+    # ── Step 3: C2场景描述修正（把"顾客/员工"替换掉）──
+    name = client_name or '主理人'
+    c2_fix_count = 0
+    for s in scripts:
+        for shot in s.get('shots', []):
+            scene = shot.get('scene', '')
+            for kw in SCENE_FORBIDDEN_PERSONS:
+                if kw in scene:
+                    # 用主理人动作替换多人出镜场景
+                    shot['scene'] = re.sub(
+                        r'.{0,8}' + re.escape(kw) + r'.{0,8}',
+                        f'{name}站在镜头前',
+                        scene
+                    )
+                    c2_fix_count += 1
+                    replacements_made.append({'script': s['number'], 'field': 'scene_c2', 'type': kw})
+                    break
+
+    # ── Step 4: 结尾配额控制（硬引导≤6条）───────────
+    hard_count = 0
+    HARD_LIMIT = 6
+    for s in scripts:
+        last_d = _get_last_dialogue(s)
+        ending_type = _classify_ending(last_d)
+        s['_ending_type'] = ending_type
+        if ending_type == 'hard':
+            hard_count += 1
+            if hard_count > HARD_LIMIT:
+                _clear_last_hard_ending(s)
+                s['_ending_type'] = 'natural'
+                replacements_made.append({'script': s['number'], 'field': 'ending_quota', 'type': 'hard→natural'})
 
     return scripts, replacements_made
 
@@ -254,7 +367,11 @@ RULES_V2 = """
 
 ■ R4【回忆处理】涉及过去的场景只通过主理人口播讲述。不得要求镜头还原历史/回忆画面。正确写法：「主理人站在工作室，讲述过去的经历，镜头对着他」
 
-■ R5【字数与口语化】每句口播台词≤20字，超过必须拆句。每条脚本全部口播台词合计150～180字（标准1分钟视频量，超出必须删减）。禁止书面排比句和大量四字成语。
+■ R5【口语节奏】句子长短自然交替，不要每句都一样长。
+  短句示例（1-8字）："真的头大。" / "就这一件事。" / "没想到——"
+  长句示例（20-35字）："那天我跟客户说，这个柜子我可以做，但你要给我三天时间，我不赶工。"
+  禁止：所有句子都在15-20字左右（这是AI味的来源）。禁止书面排比句和连续四字成语。
+  每条脚本总口播150-200字，保证内容饱满但不拖沓。
 
 ■ R6【违禁词】全行业禁：无与伦比/史上最强/行业领先/行业第一/专业团队/匠心/初心。
   建材额外禁：无甲醛/零甲醛/无毒。食品额外禁：纯天然/无添加/祖传秘方。
@@ -306,6 +423,20 @@ RULES_V2 = """
   · 每条第1个镜头（开场）场景描述必须完全不同，禁止两条共用同一个开场位置
   · 同类型的5条里，镜头顺序/组合不能超过2条相同
   · 拍摄建议每条必须针对该条内容具体写，禁止复制粘贴同一句建议
+
+■ R12【去AI味 — 这是90分和70分的分水岭】
+  程序会统计以下词在30条中的出现频次，超出限制的自动替换：
+  · 每一个/每一件/每一位/每一道 → 全批超过3次后替换
+  · 匠心 → 超过2次替换  · 用心/追求/坚持 → 超过3次替换
+  · 初心/情怀/致力于/赋能 → 超过1-2次替换
+
+  AI味的本质是：所有句子等长 + 概念堆砌 + 无具体人事物。
+  消除AI味的方法：
+  ① 句子一定要有长有短，最短可以只有2个字（"不行。""真的。""头大。"）
+  ② 每条必须有一个具体的人/事/时间/金额，不能只有概念
+  ③ 用"那个""那会儿""说实话""后来""其实"这类口语连接词
+  ④ 允许不完整的句子，允许省略号停顿，允许破折号转折
+  ⑤ 不要每段都有"结论句"，真人说话经常说了没有结论
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -404,12 +535,13 @@ EXTRA_KEYWORDS = {
 }
 
 INDUSTRY_NAMES = {
-    'jiazhuang.md': '家装',
-    'canyin.md':    '餐饮',
-    'meiiye.md':    '美业',
-    'jiudian.md':   '酒店/宴席',
-    'jinrong.md':   '金融/助贷',
-    'general.md':   '通用',
+    'jiazhuang.md':  '家装',
+    'canyin.md':     '餐饮',
+    'meiiye.md':     '美业',
+    'jiudian.md':    '酒店/宴席',
+    'jinrong.md':    '金融/助贷',
+    'gongchang.md':  '工厂/制造',
+    'general.md':    '通用',
 }
 
 def detect_industry(text):
@@ -688,8 +820,8 @@ def generate_scripts(client, api_key, progress_callback=None):
         opening_violations = scan_forbidden_openings(all_scripts)
         word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'], client.get('industry_keys', []))
 
-    # ── 阶段四：程序级后处理（最字替换）─────────────────
-    all_scripts, zui_replacements = post_process_scripts(all_scripts)
+    # ── 阶段四：程序级后处理（最字+词频+C2+结尾配额）──────
+    all_scripts, zui_replacements = post_process_scripts(all_scripts, client.get('name', ''))
 
     if progress_callback:
         progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
