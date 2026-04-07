@@ -37,6 +37,19 @@
     "会所": "jiudian.md",
     "寿宴": "jiudian.md",
 
+    "助贷": "jinrong.md",
+    "贷款": "jinrong.md",
+    "公积金": "jinrong.md",
+    "房贷": "jinrong.md",
+    "金融": "jinrong.md",
+    "理财": "jinrong.md",
+    "投资": "jinrong.md",
+    "保险": "jinrong.md",
+    "经营贷": "jinrong.md",
+    "消费贷": "jinrong.md",
+    "信贷": "jinrong.md",
+    "网贷": "jinrong.md",
+
     "default": "general.md"
   },
 

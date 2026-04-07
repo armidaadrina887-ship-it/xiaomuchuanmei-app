@@ -303,6 +303,7 @@ INDUSTRY_NAMES = {
     'canyin.md':    '餐饮',
     'meiiye.md':    '美业',
     'jiudian.md':   '酒店/宴席',
+    'jinrong.md':   '金融/助贷',
     'general.md':   '通用',
 }
 
