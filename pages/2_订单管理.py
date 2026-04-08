@@ -14,7 +14,6 @@ st.set_page_config(
 
 # ── 登录拦截 ──────────────────────────────────────────
 if not st.session_state.get("logged_in"):
-    st.session_state["staff_login"] = True
     st.switch_page("streamlit_app.py")
     st.stop()
 
@@ -56,7 +55,7 @@ with col_count:
     st.metric("待处理", pending)
 
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
-# 最新的排前面
+# 按提交日期降序（最新在前）
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
 
 st.divider()
@@ -65,16 +64,18 @@ st.divider()
 for idx, order in enumerate(filtered):
     status = order.get("status", "待处理")
     status_badge = "🟡 待处理" if status == "待处理" else "✅ 已生成"
+    group_name = order.get("group_name", "未知群")
     name = order.get("name", "未知")
     shop = order.get("shop", "")
     city = order.get("city", "")
     submitted_at = order.get("submitted_at", "")
 
-    with st.expander(f"{status_badge}  |  {name}（{shop}）· {city}  |  {submitted_at}"):
+    with st.expander(f"{status_badge}  |  【{group_name}】{name} · {submitted_at}"):
 
         # 信息预览
         col1, col2 = st.columns(2)
         with col1:
+            st.markdown(f"**微信群：** {group_name}")
             st.markdown(f"**出镜称呼：** {name}")
             st.markdown(f"**店铺：** {shop}")
             st.markdown(f"**城市：** {city}")
