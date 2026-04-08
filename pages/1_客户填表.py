@@ -171,3 +171,8 @@ if submitted:
             st.balloons()
         except Exception as e:
             st.error(f"提交失败，请截图联系工作人员：{e}")
+
+# ── 员工入口（低调放在底部）────────────────────────────
+st.markdown("<br><br>", unsafe_allow_html=True)
+with st.expander("员工入口", expanded=False):
+    st.page_link("streamlit_app.py?staff=1", label="🔐 员工登录")

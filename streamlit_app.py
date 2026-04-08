@@ -41,9 +41,14 @@ def login_page():
             else:
                 st.error("用户名或密码错误")
 
-# 未登录则显示登录页，拦截后续所有内容
+# 未登录：跳转到填表页（客户访问主链接时不会看到登录框）
 if not st.session_state.get("logged_in"):
-    login_page()
+    # 如果 URL 带了 ?staff=1 则显示登录，否则跳转填表
+    params = st.query_params
+    if params.get("staff") == "1":
+        login_page()
+    else:
+        st.switch_page("pages/1_客户填表.py")
     st.stop()
 
 # ── 顶部导航（已登录）─────────────────────────────
@@ -76,12 +81,17 @@ if not api_key:
 # ── 主界面 ────────────────────────────────────────
 st.divider()
 
-# 从订单管理页预填数据
-prefill = st.session_state.pop("prefill_order", None)
+# 从订单管理页预填数据（用 session_state key 持久化，避免按钮点击时被清空）
+if "prefill_order" in st.session_state:
+    st.session_state["_raw_input"] = st.session_state.pop("prefill_order")
+    st.session_state["_from_order"] = True
+
+if st.session_state.get("_from_order"):
+    st.success("✅ 已从订单管理载入客户信息，确认后点击生成")
 
 raw = st.text_area(
     "粘贴客户信息表",
-    value=prefill or "",
+    key="_raw_input",
     height=320,
     placeholder="""出镜称呼：小明
 店铺信息名称：XX餐厅
@@ -91,9 +101,6 @@ raw = st.text_area(
 产品特点：现切现烤，30秒出餐
 ...""",
 )
-
-if prefill:
-    st.success("✅ 已从订单管理载入客户信息，确认后点击生成")
 
 generate_btn = st.button("开始生成 →", type="primary", use_container_width=True)
 
@@ -144,6 +151,7 @@ if generate_btn:
 
     progress_bar.progress(1.0)
     status_text.success(f"✅ 生成完成！共 {len(scripts)} 条脚本")
+    st.session_state.pop("_from_order", None)
 
     # 违禁词警告
     violations = client.get('violations', [])
