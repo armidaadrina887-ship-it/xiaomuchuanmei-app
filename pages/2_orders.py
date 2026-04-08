@@ -2,9 +2,12 @@
 晓牧传媒 · 订单管理页（需登录）
 """
 import streamlit as st
-import json
+import sys
 from pathlib import Path
 from datetime import datetime
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from db import load_orders, update_order, delete_order
 
 st.set_page_config(
     page_title="晓牧传媒 · 订单管理",
@@ -16,21 +19,6 @@ st.set_page_config(
 if not st.session_state.get("logged_in"):
     st.switch_page("streamlit_app.py")
     st.stop()
-
-# ── 数据读取 ──────────────────────────────────────────
-DATA_FILE = Path(__file__).parent.parent / "data" / "orders.json"
-
-def load_orders():
-    if not DATA_FILE.exists():
-        return []
-    try:
-        return json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-
-def save_orders(orders):
-    DATA_FILE.parent.mkdir(exist_ok=True)
-    DATA_FILE.write_text(json.dumps(orders, ensure_ascii=False, indent=2), encoding="utf-8")
 
 # ── 页面标题 ──────────────────────────────────────────
 st.title("📋 订单管理")
@@ -133,16 +121,14 @@ for idx, order in enumerate(filtered):
         with btn_col2:
             if status == "待处理":
                 if st.button("✅ 标记为已生成", key=f"done_{order['id']}"):
-                    for o in orders:
-                        if o["id"] == order["id"]:
-                            o["status"] = "已生成"
-                            o["processed_by"] = st.session_state.get("username", "")
-                            o["processed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    save_orders(orders)
+                    update_order(order["id"], {
+                        "status":       "已生成",
+                        "processed_by": st.session_state.get("username", ""),
+                        "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    })
                     st.rerun()
 
         with btn_col3:
             if st.button("🗑️ 删除", key=f"del_{order['id']}"):
-                orders = [o for o in orders if o["id"] != order["id"]]
-                save_orders(orders)
+                delete_order(order["id"])
                 st.rerun()

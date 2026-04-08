@@ -2,12 +2,13 @@
 晓牧传媒 · 客户信息填写页（公开，无需登录）
 """
 import streamlit as st
-import json, sys
+import sys
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, get_field
+from db import insert_order
 
 st.set_page_config(
     page_title="晓牧传媒 · 客户填表",
@@ -26,19 +27,6 @@ header[data-testid="stHeader"]   { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── 数据存储 ──────────────────────────────────────────
-DATA_FILE = Path(__file__).parent.parent / "data" / "orders.json"
-
-def save_order(data: dict):
-    DATA_FILE.parent.mkdir(exist_ok=True)
-    orders = []
-    if DATA_FILE.exists():
-        try:
-            orders = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            orders = []
-    orders.append(data)
-    DATA_FILE.write_text(json.dumps(orders, ensure_ascii=False, indent=2), encoding="utf-8")
 
 # ── 提交成功页 ────────────────────────────────────────
 if st.session_state.get("form_submitted"):
@@ -277,7 +265,7 @@ if submitted:
             "extra":           extra.strip(),
         }
         try:
-            save_order(order)
+            insert_order(order)
             # 清除所有状态
             for k in list(st.session_state.keys()):
                 if k.startswith("pf_") or k in ("step1_done", "missing_fields"):
