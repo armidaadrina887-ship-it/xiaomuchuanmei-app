@@ -256,6 +256,39 @@ def post_process_scripts(scripts, client_name=''):
                 s['_ending_type'] = 'natural'
                 replacements_made.append({'script': s['number'], 'field': 'ending_quota', 'type': 'hard→natural'})
 
+    # ── Step 5: 重复检测（同批内相似度 >60% 的脚本打标）──
+    # 提取每条脚本的全部口播句子集合，用于两两比较
+    def _dialogue_sentences(s):
+        sents = set()
+        for shot in s.get('shots', []):
+            d = shot.get('dialogue', '')
+            # 按标点分句
+            for part in re.split(r'[，。！？、……——\n]+', d):
+                part = part.strip()
+                if len(part) >= 5:
+                    sents.add(part)
+        return sents
+
+    seen_sentences = []   # list of (script_number, set_of_sentences)
+    for s in scripts:
+        curr = _dialogue_sentences(s)
+        if not curr:
+            seen_sentences.append((s['number'], curr))
+            continue
+        for prev_num, prev_sents in seen_sentences:
+            if not prev_sents:
+                continue
+            overlap = len(curr & prev_sents)
+            ratio = overlap / min(len(curr), len(prev_sents))
+            if ratio >= 0.6:
+                replacements_made.append({
+                    'script': s['number'],
+                    'field': 'dedup_flag',
+                    'type': f'与第{prev_num}条重复率{int(ratio*100)}%',
+                })
+                break
+        seen_sentences.append((s['number'], curr))
+
     return scripts, replacements_made
 
 
@@ -545,11 +578,18 @@ INDUSTRY_NAMES = {
 }
 
 def detect_industry(text):
+    """
+    计分式行业识别：统计每个行业命中的关键词数，得分最高的行业胜出。
+    避免单个偶发词（如"装修"出现在"公积金装修贷"中）导致误判。
+    """
     router = json.loads((PROMPTS_DIR / 'industry_router.json').read_text())
-    all_rules = {**EXTRA_KEYWORDS, **router['routing_rules']}
+    all_rules = {**EXTRA_KEYWORDS, **{k: v for k, v in router['routing_rules'].items() if k != 'default'}}
+    scores = {}
     for keyword, prompt_file in all_rules.items():
-        if keyword != 'default' and keyword in text:
-            return prompt_file
+        if keyword in text:
+            scores[prompt_file] = scores.get(prompt_file, 0) + 1
+    if scores:
+        return max(scores, key=lambda k: scores[k])
     return router['routing_rules']['default']
 
 # ── 表单解析 ─────────────────────────────────────
@@ -668,7 +708,8 @@ def extract_json_list(text):
 
 def generate_scripts(client, api_key, progress_callback=None):
     """
-    v2.0 三层防崩架构：大纲 → 6批×5条（每批重注入规则）→ 违禁词扫描
+    v2.1 三层防崩架构：大纲 → 10批×3条（每批重注入规则）→ 违禁词扫描
+    每批只生成3条，防止模型在同批次内耗尽创意角度导致末尾脚本重复。
     progress_callback(pct, message) 用于向UI汇报进度，可选。
     """
     api_client = openai.OpenAI(api_key=api_key, base_url="https://api.moonshot.cn/v1")
@@ -718,16 +759,17 @@ def generate_scripts(client, api_key, progress_callback=None):
             for i, o in enumerate(outline)
         )
 
-    # ── 阶段二：6批×5条，每批重注入规则包 ────────────
+    # ── 阶段二：10批×3条，每批重注入规则包 ────────────
+    # 每批只生成3条：防止模型在同批次内创意耗尽，导致第4-5条重复前几条
     all_scripts = []
 
-    for batch_idx in range(6):
-        batch_start = batch_idx * 5 + 1
-        batch_end   = batch_start + 4
-        progress    = 0.1 + batch_idx * 0.13
+    for batch_idx in range(10):
+        batch_start = batch_idx * 3 + 1
+        batch_end   = batch_start + 2
+        progress    = 0.1 + batch_idx * 0.08
 
         if progress_callback:
-            progress_callback(progress, f"阶段二：正在生成第{batch_start}–{batch_end}条（批次{batch_idx+1}/6）...")
+            progress_callback(progress, f"阶段二：正在生成第{batch_start}–{batch_end}条（批次{batch_idx+1}/10）...")
 
         # 防重复摘要：标题+开场台词+开场场景，三维防克隆
         anti_repeat = ""
@@ -745,7 +787,7 @@ def generate_scripts(client, api_key, progress_callback=None):
         # 本批大纲条目
         batch_outline = ""
         if outline:
-            batch_items = outline[batch_idx * 5: (batch_idx + 1) * 5]
+            batch_items = outline[batch_idx * 3: (batch_idx + 1) * 3]
             batch_outline = "\n\n【本批大纲（第{}-{}条）】\n".format(batch_start, batch_end) + "\n".join(
                 "{:02d}. [{}] {}".format(
                     o.get('number', batch_start + i), o.get('type', ''), o.get('title', '')
@@ -772,8 +814,9 @@ def generate_scripts(client, api_key, progress_callback=None):
             + batch_outline
             + f"""
 
-现在生成第{batch_start}条到第{batch_end}条完整分镜脚本（共5条）。
+现在生成第{batch_start}条到第{batch_end}条完整分镜脚本（共3条）。
 严格按大纲标题和类型，每条5-6个镜头，每条全部口播台词合计150-180字（严格控制，超出删减）。
+这3条必须角度完全不同，开场句式完全不同，镜头结构完全不同。
 直接输出JSON数组，不要其他文字，不要markdown代码块：
 [
   {{
@@ -782,12 +825,12 @@ def generate_scripts(client, api_key, progress_callback=None):
     "duration": "约1分钟",
     "title": "标题",
     "shots": [
-      {{"scene": "场景描述（10-20字）", "dialogue": "口播台词（每句≤20字）"}},
-      {{"scene": "场景描述（10-20字）", "dialogue": "口播台词（每句≤20字）"}}
+      {{"scene": "场景描述（10-20字）", "dialogue": "口播台词"}},
+      {{"scene": "场景描述（10-20字）", "dialogue": "口播台词"}}
     ],
     "tips": "拍摄建议（门店内/手机可拍，一句话）"
   }},
-  ...共5条
+  ...共3条
 ]"""
         )
 

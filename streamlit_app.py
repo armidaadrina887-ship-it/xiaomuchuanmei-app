@@ -17,7 +17,7 @@ st.set_page_config(
 
 col_title, col_ver = st.columns([5, 1])
 col_title.title("🎬 晓牧传媒 · AI文案生成系统")
-col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.7</span>", unsafe_allow_html=True)
+col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.8</span>", unsafe_allow_html=True)
 st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
@@ -118,6 +118,12 @@ if generate_btn:
     zui_replacements = client.get('zui_replacements', [])
     if zui_replacements:
         st.info(f"🔄 程序已自动替换「最」字 {len(zui_replacements)} 处（涉及{len(set(r['script'] for r in zui_replacements))}条脚本）")
+
+    # 重复脚本检测
+    dedup_flags = [r for r in zui_replacements if r.get('field') == 'dedup_flag']
+    if dedup_flags:
+        dup_list = "、".join(f"第{r['script']}条（{r['type']}）" for r in dedup_flags[:6])
+        st.warning(f"⚠️ 检测到疑似重复脚本：{dup_list}，建议人工检查替换")
 
     # 生成 Word 字节流
     try:
