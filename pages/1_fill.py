@@ -97,8 +97,8 @@ with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False)
             st.error("请粘贴客户资料")
         else:
             fields = parse_form(quick_raw)
+            # 群名称已在第一步填好，保持不变
             # 写入 session_state，表单字段会自动读取
-            st.session_state["pf_group"]   = quick_group.strip()
             st.session_state["pf_name"]    = get_field(fields, '出镜称呼', '主理人姓名', '姓名')
             st.session_state["pf_shop"]    = get_field(fields, '店铺信息名称', '店名', '品牌名称', '公司名')
             st.session_state["pf_city"]    = get_field(fields, '城市名字', '城市', '地点')
