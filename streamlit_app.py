@@ -15,13 +15,54 @@ st.set_page_config(
     layout="centered",
 )
 
-col_title, col_ver = st.columns([5, 1])
+# ── 登录验证 ──────────────────────────────────────
+def check_login(username, password):
+    try:
+        users = st.secrets["users"]
+        return users.get(username) == password
+    except Exception:
+        return False
+
+def login_page():
+    st.markdown(
+        "<h2 style='text-align:center;margin-top:60px'>🎬 晓牧传媒</h2>"
+        "<p style='text-align:center;color:#888;margin-bottom:32px'>AI文案生成系统 · 内部专用</p>",
+        unsafe_allow_html=True,
+    )
+    with st.form("login_form"):
+        username = st.text_input("用户名", placeholder="请输入用户名")
+        password = st.text_input("密码", type="password", placeholder="请输入密码")
+        submitted = st.form_submit_button("登录", use_container_width=True, type="primary")
+        if submitted:
+            if check_login(username, password):
+                st.session_state["logged_in"] = True
+                st.session_state["username"] = username
+                st.rerun()
+            else:
+                st.error("用户名或密码错误")
+
+# 未登录则显示登录页，拦截后续所有内容
+if not st.session_state.get("logged_in"):
+    login_page()
+    st.stop()
+
+# ── 顶部导航（已登录）─────────────────────────────
+col_title, col_ver, col_user = st.columns([4, 1, 1])
 col_title.title("🎬 晓牧传媒 · AI文案生成系统")
-col_ver.markdown("<br><span style='background:#1a73e8;color:white;padding:3px 10px;border-radius:12px;font-size:13px'>v2.9</span>", unsafe_allow_html=True)
-st.caption("粘贴客户信息表 → 自动识别行业 → 6批×5条生成 → 行业违禁词扫描 → 下载Word")
+col_ver.markdown(
+    "<br><span style='background:#1a73e8;color:white;padding:3px 10px;"
+    "border-radius:12px;font-size:13px'>v2.9</span>",
+    unsafe_allow_html=True,
+)
+with col_user:
+    st.markdown(f"<br><span style='font-size:13px;color:#555'>👤 {st.session_state['username']}</span>", unsafe_allow_html=True)
+    if st.button("退出", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
+
+st.caption("粘贴客户信息表 → 自动识别行业 → 10批×3条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
-# 优先从 Streamlit secrets 读取，其次从环境变量
 api_key = None
 try:
     api_key = st.secrets["KIMI_API_KEY"]
@@ -117,7 +158,9 @@ if generate_btn:
     # 「最」字替换统计
     zui_replacements = client.get('zui_replacements', [])
     if zui_replacements:
-        st.info(f"🔄 程序已自动替换「最」字 {len(zui_replacements)} 处（涉及{len(set(r['script'] for r in zui_replacements))}条脚本）")
+        zui_count = len([r for r in zui_replacements if r.get('type') == 'zui'])
+        if zui_count:
+            st.info(f"🔄 程序已自动替换「最」字 {zui_count} 处（涉及{len(set(r['script'] for r in zui_replacements if r.get('type') == 'zui'))}条脚本）")
 
     # 重复脚本检测
     dedup_flags = [r for r in zui_replacements if r.get('field') == 'dedup_flag']
