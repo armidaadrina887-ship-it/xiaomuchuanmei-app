@@ -41,14 +41,10 @@ def login_page():
             else:
                 st.error("用户名或密码错误")
 
-# 未登录：跳转到填表页（客户访问主链接时不会看到登录框）
+# 未登录：直接跳转填表页（客户访问主链接时看到的是填表，不是登录）
+# 员工请访问：主链接/订单管理 或直接在浏览器地址栏导航
 if not st.session_state.get("logged_in"):
-    # 如果 URL 带了 ?staff=1 则显示登录，否则跳转填表
-    params = st.query_params
-    if params.get("staff") == "1":
-        login_page()
-    else:
-        st.switch_page("pages/1_客户填表.py")
+    st.switch_page("pages/1_客户填表.py")
     st.stop()
 
 # ── 顶部导航（已登录）─────────────────────────────
