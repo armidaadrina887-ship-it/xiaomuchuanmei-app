@@ -140,10 +140,21 @@ st.info(
     "iOS：长按键盘左下角 🎤  |  Android：长按键盘麦克风键"
 )
 
-# ── 初始化表单字段默认值 ──────────────────────────────
+# ── 辅助：读取预填值 ──────────────────────────────────
 def _v(key, default=""):
-    """从 session_state 读取预填值，读后不清除（让用户可编辑）"""
     return st.session_state.get(key, default)
+
+# 高亮样式：未填字段下方显示红色提示
+_ERR_HTML = (
+    "<div style='background:#fff0f0;border-left:3px solid #ff4444;"
+    "padding:4px 10px;margin:-6px 0 10px;border-radius:0 4px 4px 0;"
+    "font-size:13px;color:#cc0000'>⚠️ 此项必填，请填写后再提交</div>"
+)
+_missing_set: set = set(st.session_state.get("missing_fields", []))
+
+def _err(field_id):
+    if field_id in _missing_set:
+        st.markdown(_ERR_HTML, unsafe_allow_html=True)
 
 # ── 表单 ──────────────────────────────────────────────
 with st.form("client_form"):
@@ -154,6 +165,7 @@ with st.form("client_form"):
         value=_v("pf_group"),
         placeholder="请复制您所在的晓牧传媒服务群名称，粘贴到此处",
     )
+    _err("微信群名称")
 
     st.divider()
     st.markdown("### 第一部分：基本信息")
@@ -161,28 +173,36 @@ with st.form("client_form"):
     col1, col2 = st.columns(2)
     with col1:
         name = st.text_input("出镜称呼 *", value=_v("pf_name"), placeholder="如：老苏、川哥、小美")
+        _err("出镜称呼")
     with col2:
         gender = st.selectbox("性别", ["女", "男", "不限"])
 
     shop = st.text_input("店铺 / 品牌名称 *", value=_v("pf_shop"), placeholder="如：入木三分木作工作室")
+    _err("店铺/品牌名称")
 
     col3, col4 = st.columns(2)
     with col3:
         city = st.text_input("城市 *", value=_v("pf_city"), placeholder="如：杭州、重庆石桥铺")
+        _err("城市")
     with col4:
         years = st.text_input("从业年限", value=_v("pf_years"), placeholder="如：8年")
 
     main_biz = st.text_input("主营业务 *", value=_v("pf_biz"), placeholder="如：全屋定制木作、川菜餐厅")
+    _err("主营业务")
 
     st.divider()
     st.markdown("### 第二部分：产品与优势")
 
     product = st.text_input("主推产品 / 服务 *", value=_v("pf_product"), placeholder="如：极简系列橱柜、麻辣龙虾")
+    _err("主推产品/服务")
     feature = st.text_area("产品特点 / 卖点 *", value=_v("pf_feature"), height=80,
                            placeholder="如：全实木框架、现捞现炒、进口玻尿酸")
+    _err("产品特点/卖点")
     advantage = st.text_area("核心优势（与同类的不同之处）*", value=_v("pf_adv"), height=80,
                               placeholder="如：自己工厂直供无中间商、只做本地食材")
+    _err("核心优势")
     target = st.text_input("目标客群 *", value=_v("pf_target"), placeholder="如：25-40岁有装修需求的业主")
+    _err("目标客群")
 
     st.divider()
     st.markdown("### 第三部分：你的故事")
@@ -190,12 +210,16 @@ with st.form("client_form"):
 
     story = st.text_area("创业经历 / 入行故事 *", value=_v("pf_story"), height=120,
                          placeholder="怎么入行的？当时为什么做这个？有什么转折点？")
+    _err("创业经历/入行故事")
     hard_time = st.text_area("最难熬的一段时期 *", value=_v("pf_hard"), height=100,
                              placeholder="做这行最难的时候是什么？差点放弃吗？怎么撑过来的？")
+    _err("最难熬的一段时期")
     best_case = st.text_area("印象最深的客户案例 *", value=_v("pf_case"), height=100,
                              placeholder="有没有特别让你印象深刻的客户或订单？发生了什么？")
+    _err("印象最深的客户案例")
     differentiation = st.text_area("你和同行最大的不同 *", value=_v("pf_diff"), height=80,
                                    placeholder="如果客户问你「为什么选你不选别人」，你会怎么回答？")
+    _err("你和同行最大的不同")
 
     st.divider()
     st.markdown("### 补充信息（选填）")
@@ -226,7 +250,8 @@ if submitted:
     missing = [k for k, v in required_fields.items() if not v.strip()]
 
     if missing:
-        st.error(f"⚠️ 以下必填项未填写，请补充后再提交：\n\n**{'、'.join(missing)}**")
+        st.session_state["missing_fields"] = missing
+        st.error(f"⚠️ 还有 {len(missing)} 项未填写，已在下方标红提示，请补充后再提交")
     else:
         order = {
             "id":              datetime.now().strftime("%Y%m%d%H%M%S"),
@@ -253,9 +278,9 @@ if submitted:
         }
         try:
             save_order(order)
-            # 清除预填缓存和步骤状态
+            # 清除所有状态
             for k in list(st.session_state.keys()):
-                if k.startswith("pf_") or k == "step1_done":
+                if k.startswith("pf_") or k in ("step1_done", "missing_fields"):
                     del st.session_state[k]
             st.session_state["form_submitted"] = True
             st.session_state["submitted_name"] = name.strip()
