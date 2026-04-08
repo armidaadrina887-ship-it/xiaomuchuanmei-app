@@ -92,11 +92,6 @@ if not st.session_state.get("step1_done"):
 # ── 一键解析区（放在表单外，解析后写入 session_state）───
 with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False):
     st.caption("把之前填写的客户信息表（任意格式）粘贴进来，系统自动识别并填入下方表单")
-    quick_group = st.text_input(
-        "微信群名称（必填）",
-        key="quick_group",
-        placeholder="请先填写群名称",
-    )
     quick_raw = st.text_area(
         "粘贴客户资料",
         key="quick_raw",
@@ -110,9 +105,7 @@ with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False)
 ...""",
     )
     if st.button("🔍 解析并自动填写 →", type="primary", use_container_width=True):
-        if not quick_group.strip():
-            st.error("请先填写微信群名称")
-        elif not quick_raw.strip():
+        if not quick_raw.strip():
             st.error("请粘贴客户资料")
         else:
             fields = parse_form(quick_raw)
