@@ -76,8 +76,12 @@ if not api_key:
 # ── 主界面 ────────────────────────────────────────
 st.divider()
 
+# 从订单管理页预填数据
+prefill = st.session_state.pop("prefill_order", None)
+
 raw = st.text_area(
     "粘贴客户信息表",
+    value=prefill or "",
     height=320,
     placeholder="""出镜称呼：小明
 店铺信息名称：XX餐厅
@@ -87,6 +91,9 @@ raw = st.text_area(
 产品特点：现切现烤，30秒出餐
 ...""",
 )
+
+if prefill:
+    st.success("✅ 已从订单管理载入客户信息，确认后点击生成")
 
 generate_btn = st.button("开始生成 →", type="primary", use_container_width=True)
 
