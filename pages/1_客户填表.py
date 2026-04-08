@@ -15,9 +15,11 @@ st.set_page_config(
 # ── 隐藏侧边栏导航（客户不需要看到其他页面）────────────
 st.markdown("""
 <style>
-[data-testid="stSidebarNav"] { display: none; }
-[data-testid="collapsedControl"] { display: none; }
-section[data-testid="stSidebar"] { display: none; }
+[data-testid="stSidebarNav"]  { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+section[data-testid="stSidebar"] { display: none !important; }
+#MainMenu { display: none !important; }
+header[data-testid="stHeader"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 

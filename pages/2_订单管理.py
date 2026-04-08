@@ -14,9 +14,8 @@ st.set_page_config(
 
 # ── 登录拦截 ──────────────────────────────────────────
 if not st.session_state.get("logged_in"):
-    st.warning("请先登录")
-    if st.button("去登录", type="primary"):
-        st.switch_page("streamlit_app.py")
+    st.session_state["staff_login"] = True
+    st.switch_page("streamlit_app.py")
     st.stop()
 
 # ── 数据读取 ──────────────────────────────────────────
