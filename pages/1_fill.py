@@ -57,10 +57,37 @@ if st.session_state.get("form_submitted"):
 # ── 页面标题 ──────────────────────────────────────────
 st.markdown(
     "<h2 style='text-align:center;margin-top:16px'>📝 客户资料填写</h2>"
-    "<p style='text-align:center;color:#888'>晓牧传媒 · AI短视频文案定制</p>",
+    "<p style='text-align:center;color:#888'>晓牧传媒 · 专业短视频文案定制</p>",
     unsafe_allow_html=True,
 )
 st.divider()
+
+# ── 第一步：群名称 + 称呼（门控）────────────────────────
+# 未完成第一步时，只显示入口字段，不展示完整表单
+if not st.session_state.get("step1_done"):
+    st.markdown("### 请先填写以下信息")
+    st.caption("填写完成后点击「开始填写资料」进入详细表单")
+
+    with st.form("step1_form"):
+        s1_group = st.text_input(
+            "微信群名称 *",
+            placeholder="请复制您所在的晓牧传媒服务群名称粘贴到此处",
+        )
+        s1_name = st.text_input(
+            "您的称呼 *",
+            placeholder="如：老苏、川哥、小美（视频里怎么称呼就怎么填）",
+        )
+        go = st.form_submit_button("开始填写资料 →", type="primary", use_container_width=True)
+
+    if go:
+        if not s1_group.strip() or not s1_name.strip():
+            st.error("两项都必须填写才能继续")
+        else:
+            st.session_state["pf_group"] = s1_group.strip()
+            st.session_state["pf_name"]  = s1_name.strip()
+            st.session_state["step1_done"] = True
+            st.rerun()
+    st.stop()
 
 # ── 一键解析区（放在表单外，解析后写入 session_state）───
 with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False):
@@ -233,9 +260,9 @@ if submitted:
         }
         try:
             save_order(order)
-            # 清除预填缓存
+            # 清除预填缓存和步骤状态
             for k in list(st.session_state.keys()):
-                if k.startswith("pf_"):
+                if k.startswith("pf_") or k == "step1_done":
                     del st.session_state[k]
             st.session_state["form_submitted"] = True
             st.session_state["submitted_name"] = name.strip()
