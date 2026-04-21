@@ -3,12 +3,11 @@
 """
 import streamlit as st
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, get_field
-from db import insert_order
+from db import insert_order, now_beijing
 
 st.set_page_config(
     page_title="晓牧传媒 · 客户填表",
@@ -242,8 +241,8 @@ if submitted:
         st.error(f"⚠️ 还有 {len(missing)} 项未填写，已在下方标红提示，请补充后再提交")
     else:
         order = {
-            "id":              datetime.now().strftime("%Y%m%d%H%M%S"),
-            "submitted_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "id":              now_beijing().replace("-","").replace(":","").replace(" ",""),
+            "submitted_at":    now_beijing(),
             "status":          "待处理",
             "group_name":      group_name.strip(),
             "name":            name.strip(),

@@ -4,10 +4,9 @@
 import streamlit as st
 import sys
 from pathlib import Path
-from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from db import load_orders, update_order, delete_order
+from db import load_orders, update_order, delete_order, now_beijing
 from version import VERSION
 
 st.set_page_config(
@@ -16,14 +15,22 @@ st.set_page_config(
     layout="wide",
 )
 
+# 先隐藏内容，避免未登录时内容闪现一帧
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"] > .main { visibility: hidden; }
+</style>
+""", unsafe_allow_html=True)
+
 # ── 登录拦截 ──────────────────────────────────────────
 if not st.session_state.get("logged_in"):
     st.switch_page("streamlit_app.py")
     st.stop()
 
-# ── 橙色主题 + 管理后台侧边栏（不含客户填表页）────────
+# ── 已登录：显示内容 + 橙色主题 + 侧边栏 ────────────
 st.markdown("""
 <style>
+[data-testid="stAppViewContainer"] > .main { visibility: visible; }
 [data-testid="stSidebarNav"] { display: none !important; }
 button[kind="primary"] {
     background-color: #E65000 !important;
@@ -39,12 +46,11 @@ a { color: #E65000 !important; }
 
 with st.sidebar:
     st.markdown(
-        f"<div style='padding:12px 0 8px;font-size:15px;font-weight:600;"
-        f"color:#E65000'>🎬 晓牧传媒后台</div>",
+        "<div style='padding:12px 0 8px;font-size:15px;font-weight:600;color:#E65000'>🎬 晓牧传媒后台</div>",
         unsafe_allow_html=True,
     )
-    st.page_link("streamlit_app.py",      label="✍️  生成文案")
-    st.page_link("pages/2_orders.py",     label="📋  订单管理")
+    st.page_link("streamlit_app.py",  label="✍️  生成文案")
+    st.page_link("pages/2_orders.py", label="📋  订单管理")
     st.divider()
     st.markdown(
         f"<span style='font-size:12px;color:#999'>👤 {st.session_state.get('username','')}</span>",
@@ -52,7 +58,7 @@ with st.sidebar:
     )
     if st.button("退出登录", use_container_width=True):
         st.session_state.clear()
-        st.rerun()
+        st.switch_page("streamlit_app.py")
 
 # ── 页面标题 ──────────────────────────────────────────
 col_t, col_v = st.columns([6, 1])
@@ -62,7 +68,7 @@ col_v.markdown(
     f"border-radius:12px;font-size:13px'>v{VERSION}</span>",
     unsafe_allow_html=True,
 )
-st.caption(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}")
+st.caption(now_beijing())
 
 orders = load_orders()
 
@@ -73,18 +79,53 @@ if not orders:
 # ── 状态筛选 ──────────────────────────────────────────
 col_filter, col_count = st.columns([3, 1])
 with col_filter:
-    status_filter = st.radio(
-        "筛选状态",
-        ["全部", "待处理", "已生成"],
-        horizontal=True,
-    )
+    status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], horizontal=True)
 with col_count:
     pending = sum(1 for o in orders if o.get("status") == "待处理")
     st.metric("待处理", pending)
 
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
-# 按提交日期降序（最新在前）
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
+
+# ── 批量生成区 ────────────────────────────────────────
+pending_orders = [o for o in filtered if o.get("status") == "待处理"]
+if pending_orders:
+    with st.expander(f"📦 批量生成（选择多个待处理订单）", expanded=False):
+        st.caption("勾选订单后点击「批量生成」，将依次生成并在文案页统一下载")
+        selected_ids = []
+        for o in pending_orders:
+            if st.checkbox(
+                f"【{o.get('group_name','—')}】{o.get('name','—')} · {o.get('shop','—')} · {o.get('submitted_at','')}",
+                key=f"batch_chk_{o['id']}",
+            ):
+                selected_ids.append(o["id"])
+
+        if selected_ids:
+            if st.button(f"🚀 批量生成选中订单（{len(selected_ids)}个）", type="primary"):
+                batch_queue = []
+                for o in pending_orders:
+                    if o["id"] not in selected_ids:
+                        continue
+                    raw_text = f"""出镜称呼：{o.get('name', '')}
+性别：{o.get('gender', '')}
+店铺信息名称：{o.get('shop', '')}
+城市名字：{o.get('city', '')}
+从业年限：{o.get('years', '')}
+主营业务：{o.get('main_biz', '')}
+主推产品：{o.get('product', '')}
+产品特点：{o.get('feature', '')}
+核心优势：{o.get('advantage', '')}
+目标客群：{o.get('target', '')}
+创业经历：{o.get('story', '')}
+最难的时期：{o.get('hard_time', '')}
+客户案例：{o.get('best_case', '')}
+与同行差异：{o.get('differentiation', '')}
+能解决的痛点：{o.get('pain', '')}
+营业时间：{o.get('hours', '')}
+补充信息：{o.get('extra', '')}"""
+                    batch_queue.append({"raw": raw_text, "order_id": o["id"], "name": o.get("name", "")})
+                st.session_state["batch_queue"] = batch_queue
+                st.switch_page("streamlit_app.py")
 
 st.divider()
 
@@ -94,19 +135,16 @@ for idx, order in enumerate(filtered):
     status_badge = "🟡 待处理" if status == "待处理" else "✅ 已生成"
     group_name = order.get("group_name", "未知群")
     name = order.get("name", "未知")
-    shop = order.get("shop", "")
-    city = order.get("city", "")
     submitted_at = order.get("submitted_at", "")
 
     with st.expander(f"{status_badge}  |  【{group_name}】{name} · {submitted_at}"):
 
-        # 信息预览
         col1, col2 = st.columns(2)
         with col1:
             st.markdown(f"**微信群：** {group_name}")
             st.markdown(f"**出镜称呼：** {name}")
-            st.markdown(f"**店铺：** {shop}")
-            st.markdown(f"**城市：** {city}")
+            st.markdown(f"**店铺：** {order.get('shop', '')}")
+            st.markdown(f"**城市：** {order.get('city', '')}")
             st.markdown(f"**从业年限：** {order.get('years', '—')}")
             st.markdown(f"**主营业务：** {order.get('main_biz', '—')}")
             st.markdown(f"**主推产品：** {order.get('product', '—')}")
@@ -130,13 +168,10 @@ for idx, order in enumerate(filtered):
 
         st.divider()
 
-        # 操作按钮
         btn_col1, btn_col2, btn_col3 = st.columns([2, 2, 1])
 
         with btn_col1:
-            # 一键把该客户信息转成填表格式，跳转到生成页
             if st.button("🚀 一键生成文案", key=f"gen_{order['id']}", type="primary"):
-                # 把订单数据转换成填表格式，存入 session_state
                 raw_text = f"""出镜称呼：{order.get('name', '')}
 性别：{order.get('gender', '')}
 店铺信息名称：{order.get('shop', '')}
@@ -164,7 +199,7 @@ for idx, order in enumerate(filtered):
                     update_order(order["id"], {
                         "status":       "已生成",
                         "processed_by": st.session_state.get("username", ""),
-                        "processed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "processed_at": now_beijing(),
                     })
                     st.rerun()
 

@@ -5,7 +5,12 @@
 import json
 import streamlit as st
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_TZ_BEIJING = timezone(timedelta(hours=8))
+
+def now_beijing() -> str:
+    return datetime.now(_TZ_BEIJING).strftime("%Y-%m-%d %H:%M:%S")
 
 _LOCAL_FILE = Path(__file__).parent / "data" / "orders.json"
 

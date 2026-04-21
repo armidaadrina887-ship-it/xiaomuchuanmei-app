@@ -7,7 +7,7 @@ from core import (
     parse_form, build_client, generate_scripts,
     make_word_bytes, INDUSTRY_NAMES
 )
-from db import update_order
+from db import update_order, now_beijing
 from version import VERSION
 
 # ── 页面配置 ──────────────────────────────────────
@@ -16,6 +16,13 @@ st.set_page_config(
     page_icon="🎬",
     layout="centered",
 )
+
+# 先隐藏内容，避免未登录时页面内容闪现
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"] > .main { visibility: hidden; }
+</style>
+""", unsafe_allow_html=True)
 
 # ── 全局橙色主题 CSS（覆盖 Streamlit 默认红/蓝）──────
 ORANGE_CSS = """
@@ -54,6 +61,7 @@ def check_login(username, password):
 def login_page():
     st.markdown(ORANGE_CSS + """
 <style>
+[data-testid="stAppViewContainer"] > .main { visibility: visible; }
 [data-testid="collapsedControl"] { display: none !important; }
 section[data-testid="stSidebar"] { display: none !important; }
 #MainMenu                        { display: none !important; }
@@ -72,7 +80,7 @@ section[data-testid="stSidebar"] { display: none !important; }
             if check_login(username, password):
                 st.session_state["logged_in"] = True
                 st.session_state["username"] = username
-                st.rerun()
+                # form submit 本身触发 rerun，不需要额外 st.rerun()
             else:
                 st.error("用户名或密码错误")
 
@@ -81,8 +89,12 @@ if not st.session_state.get("logged_in"):
     login_page()
     st.stop()
 
-# ── 已登录：注入橙色主题 + 管理后台导航（不含客户填表页）──
-st.markdown(ORANGE_CSS, unsafe_allow_html=True)
+# ── 已登录：显示内容 + 橙色主题 + 管理后台导航 ──────
+st.markdown(ORANGE_CSS + """
+<style>
+[data-testid="stAppViewContainer"] > .main { visibility: visible; }
+</style>
+""", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown(
@@ -113,6 +125,7 @@ col_ver.markdown(
 st.caption("粘贴客户信息表 → 自动识别行业 → 10批×3条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
+# （提前获取，批量模式也需要用）
 api_key = None
 try:
     api_key = st.secrets["KIMI_API_KEY"]
@@ -123,7 +136,76 @@ if not api_key:
     st.error("未配置 API Key，请联系管理员")
     st.stop()
 
-# ── 主界面 ────────────────────────────────────────
+# ── 批量生成模式 ──────────────────────────────────
+if "batch_queue" in st.session_state:
+    batch_queue = st.session_state.pop("batch_queue")
+    st.info(f"📦 批量模式：共 {len(batch_queue)} 个订单，依次生成中...")
+    st.divider()
+
+    batch_results = []
+    for i, item in enumerate(batch_queue):
+        st.subheader(f"第 {i+1} / {len(batch_queue)} 个：{item['name']}")
+        pb  = st.progress(0.0)
+        stxt = st.empty()
+
+        fields = parse_form(item["raw"])
+        try:
+            client, prompt_file = build_client(fields)
+        except Exception as e:
+            stxt.error(f"解析失败：{e}")
+            continue
+
+        stxt.info(f"⏳ 开始生成 {client['name']} 的文案...")
+        try:
+            scripts = generate_scripts(
+                client, api_key,
+                progress_callback=lambda p, m, _pb=pb, _st=stxt: (_pb.progress(p), _st.info(f"⏳ {m}"))
+            )
+        except Exception as e:
+            stxt.error(f"生成失败：{e}")
+            continue
+
+        pb.progress(1.0)
+        stxt.success(f"✅ 完成！共 {len(scripts)} 条")
+
+        try:
+            word_bytes = make_word_bytes(client, scripts)
+        except Exception as e:
+            st.error(f"Word生成失败：{e}")
+            continue
+
+        batch_results.append({
+            "name":     client["name"],
+            "company":  client.get("company", ""),
+            "bytes":    word_bytes,
+            "filename": f"{client['name']}_{client.get('company','')[:8]}_30条文案.docx",
+            "order_id": item.get("order_id"),
+            "client":   client,
+            "scripts":  scripts,
+        })
+
+    if batch_results:
+        st.divider()
+        st.success(f"🎉 批量完成！{len(batch_results)} 个订单已全部生成，请逐一下载")
+        for r in batch_results:
+            dl = st.download_button(
+                label=f"⬇️ 下载：{r['name']} · {r['company'][:8]}（{len(r['scripts'])}条）",
+                data=r["bytes"],
+                file_name=r["filename"],
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+                type="primary",
+                key=f"dl_batch_{r['order_id']}",
+            )
+            if dl and r["order_id"]:
+                update_order(r["order_id"], {
+                    "status":       "已生成",
+                    "processed_by": st.session_state.get("username", ""),
+                    "processed_at": now_beijing(),
+                })
+    st.stop()
+
+# ── 单条生成主界面 ─────────────────────────────────
 st.divider()
 
 if "prefill_order" in st.session_state:
@@ -245,7 +327,7 @@ if generate_btn:
             update_order(order_id, {
                 "status":       "已生成",
                 "processed_by": st.session_state.get("username", ""),
-                "processed_at": __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "processed_at": now_beijing(),
             })
 
     with st.expander("预览前3条脚本"):
