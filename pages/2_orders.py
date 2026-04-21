@@ -1,8 +1,10 @@
 """
 晓牧传媒 · 订单管理页（需登录）
-生成在本页内联完成，无需跳转主页
+生成在后台线程运行，页面保持可交互，每 1.5s 自动刷新进度
 """
 import os
+import threading
+import time
 import streamlit as st
 import sys
 from pathlib import Path
@@ -26,12 +28,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── 登录拦截 ──────────────────────────────────────────
 if not st.session_state.get("logged_in"):
     st.switch_page("streamlit_app.py")
     st.stop()
 
-# ── 已登录：显示内容 + 主题 ───────────────────────────
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: visible; }
@@ -42,7 +42,6 @@ a { color: #E65000 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── 侧边栏 ────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
         "<div style='padding:12px 0 8px;font-size:15px;font-weight:600;color:#E65000'>🎬 晓牧传媒后台</div>",
@@ -59,7 +58,6 @@ with st.sidebar:
         st.session_state.clear()
         st.switch_page("streamlit_app.py")
 
-# ── API Key ───────────────────────────────────────────
 try:
     api_key = st.secrets["KIMI_API_KEY"]
 except Exception:
@@ -68,6 +66,74 @@ except Exception:
 if not api_key:
     st.error("未配置 API Key，请联系管理员")
     st.stop()
+
+# ── 后台生成状态（模块级，跨 rerun 保持）────────────────
+# key: (session_state_id, order_id) → {status, progress, msg, ...}
+_GEN: dict = {}
+_GEN_LOCK = threading.Lock()
+
+def _skey(oid: str) -> tuple:
+    return (id(st.session_state), oid)
+
+def _get_gen(oid: str) -> dict:
+    with _GEN_LOCK:
+        return dict(_GEN.get(_skey(oid), {}))
+
+def _order_to_raw(o: dict) -> str:
+    return f"""出镜称呼：{o.get('name', '')}
+性别：{o.get('gender', '')}
+店铺信息名称：{o.get('shop', '')}
+城市名字：{o.get('city', '')}
+从业年限：{o.get('years', '')}
+主营业务：{o.get('main_biz', '')}
+主推产品：{o.get('product', '')}
+产品特点：{o.get('feature', '')}
+核心优势：{o.get('advantage', '')}
+目标客群：{o.get('target', '')}
+创业经历：{o.get('story', '')}
+最难的时期：{o.get('hard_time', '')}
+客户案例：{o.get('best_case', '')}
+与同行差异：{o.get('differentiation', '')}
+能解决的痛点：{o.get('pain', '')}
+营业时间：{o.get('hours', '')}
+补充信息：{o.get('extra', '')}"""
+
+def _start_gen(order: dict, api_key: str):
+    """启动后台线程生成该订单文案"""
+    oid  = order["id"]
+    skey = _skey(oid)
+    with _GEN_LOCK:
+        if _GEN.get(skey, {}).get("status") == "running":
+            return  # 已在生成中，防止重复启动
+        _GEN[skey] = {"status": "running", "progress": 0.0, "msg": "准备中..."}
+
+    def run():
+        try:
+            raw    = _order_to_raw(order)
+            fields = parse_form(raw)
+            client, _ = build_client(fields)
+
+            def on_progress(p, m):
+                with _GEN_LOCK:
+                    if skey in _GEN:
+                        _GEN[skey].update({"progress": p, "msg": m})
+
+            scripts    = generate_scripts(client, api_key, progress_callback=on_progress)
+            word_bytes = make_word_bytes(client, scripts)
+
+            with _GEN_LOCK:
+                _GEN[skey] = {
+                    "status":   "done",
+                    "bytes":    word_bytes,
+                    "filename": f"{client['name']}_{client.get('company','')[:8]}_30条文案.docx",
+                    "count":    len(scripts),
+                    "client":   client,
+                }
+        except Exception as e:
+            with _GEN_LOCK:
+                _GEN[skey] = {"status": "error", "error": str(e)}
+
+    threading.Thread(target=run, daemon=True).start()
 
 # ── 页面标题 ──────────────────────────────────────────
 col_t, col_v = st.columns([6, 1])
@@ -90,13 +156,13 @@ col_filter, col_count = st.columns([3, 1])
 with col_filter:
     status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], horizontal=True)
 with col_count:
-    pending = sum(1 for o in orders if o.get("status") == "待处理")
-    st.metric("待处理", pending)
+    pending_cnt = sum(1 for o in orders if o.get("status") == "待处理")
+    st.metric("待处理", pending_cnt)
 
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
 
-# ── 批量操作栏 ────────────────────────────────────────
+# ── 批量操作栏（仅待处理订单）────────────────────────
 pending_orders = [o for o in orders if o.get("status") == "待处理"]
 if pending_orders:
     st.markdown("""
@@ -104,154 +170,99 @@ if pending_orders:
             padding:12px 16px;margin-bottom:8px'>
 <b style='color:#E65000'>📦 批量生成</b>
 <span style='color:#555;font-size:13px;margin-left:8px'>
-勾选下方待处理订单 → 点击「批量生成」→ 在本页依次生成，完成后逐个下载
+勾选待处理订单 → 批量生成（多个订单同时在后台运行，互不影响）
 </span>
 </div>
 """, unsafe_allow_html=True)
-
     selected_ids = []
     for o in pending_orders:
-        if st.checkbox(
-            f"【{o.get('group_name','—')}】**{o.get('name','—')}** · "
-            f"{o.get('shop','—')} · {o.get('submitted_at','')}",
-            key=f"batch_chk_{o['id']}",
-        ):
+        gen = _get_gen(o["id"])
+        is_running = gen.get("status") == "running"
+        label = (
+            f"⏳ 生成中 {int(gen.get('progress',0)*100)}%  · "
+            if is_running else ""
+        ) + f"【{o.get('group_name','—')}】**{o.get('name','—')}** · {o.get('shop','—')} · {o.get('submitted_at','')}"
+        if st.checkbox(label, key=f"batch_chk_{o['id']}", disabled=is_running):
             selected_ids.append(o["id"])
 
     btn_label = f"🚀 批量生成选中订单（{len(selected_ids)}个）" if selected_ids else "请先勾选订单"
     if st.button(btn_label, type="primary", disabled=not selected_ids, use_container_width=True):
-        st.session_state["_batch_ids"] = selected_ids[:]
-        st.session_state.pop("_current_gen_id", None)
+        for oid in selected_ids:
+            order = next((o for o in pending_orders if o["id"] == oid), None)
+            if order:
+                _start_gen(order, api_key)
         st.rerun()
 
 st.divider()
 
-# ── 批量队列自动推进 ──────────────────────────────────
-# 如果有待处理批量队列且当前没有正在生成的任务，取出下一个开始生成
-batch_ids = st.session_state.get("_batch_ids", [])
-current_gen_id = st.session_state.get("_current_gen_id")
-
-if batch_ids and not current_gen_id:
-    st.session_state["_current_gen_id"] = batch_ids[0]
-    st.session_state["_batch_ids"] = batch_ids[1:]
-    st.rerun()
-
-# ── 辅助：订单转文本 ──────────────────────────────────
-def _order_to_raw(o: dict) -> str:
-    return f"""出镜称呼：{o.get('name', '')}
-性别：{o.get('gender', '')}
-店铺信息名称：{o.get('shop', '')}
-城市名字：{o.get('city', '')}
-从业年限：{o.get('years', '')}
-主营业务：{o.get('main_biz', '')}
-主推产品：{o.get('product', '')}
-产品特点：{o.get('feature', '')}
-核心优势：{o.get('advantage', '')}
-目标客群：{o.get('target', '')}
-创业经历：{o.get('story', '')}
-最难的时期：{o.get('hard_time', '')}
-客户案例：{o.get('best_case', '')}
-与同行差异：{o.get('differentiation', '')}
-能解决的痛点：{o.get('pain', '')}
-营业时间：{o.get('hours', '')}
-补充信息：{o.get('extra', '')}"""
-
-# ── 批量进度提示 ──────────────────────────────────────
-remaining = len(st.session_state.get("_batch_ids", []))
-if current_gen_id or remaining > 0:
-    total_done = sum(
-        1 for o in pending_orders
-        if f"_result_{o['id']}" in st.session_state
-    )
-    batch_total = total_done + (1 if current_gen_id else 0) + remaining
-    st.info(f"📦 批量进行中：已完成 {total_done} 个 / 共 {batch_total} 个"
-            + (f"，还有 {remaining} 个排队中" if remaining > 0 else ""))
-
 # ── 订单列表 ──────────────────────────────────────────
-for order in filtered:
-    oid        = order["id"]
-    status     = order.get("status", "待处理")
-    is_gen     = (current_gen_id == oid)
-    has_result = f"_result_{oid}" in st.session_state
+any_running = False
 
-    status_badge = {
-        "待处理": "🟡 待处理",
-        "已生成": "✅ 已生成",
-    }.get(status, f"🔵 {status}")
-    if is_gen:
-        status_badge = "⏳ 生成中..."
+for order in filtered:
+    oid   = order["id"]
+    gen   = _get_gen(oid)
+    gst   = gen.get("status")          # "running" / "done" / "error" / None
+    db_status = order.get("status", "待处理")
+
+    # 已完成：把结果搬进 session_state，清理模块级 dict
+    if gst == "done":
+        st.session_state[f"_result_{oid}"] = gen
+        with _GEN_LOCK:
+            _GEN.pop(_skey(oid), None)
+        update_order(oid, {
+            "status":       "已生成",
+            "processed_by": st.session_state.get("username", ""),
+            "processed_at": now_beijing(),
+        })
+        gst = None
+
+    is_running  = (gst == "running")
+    is_error    = (gst == "error")
+    has_result  = f"_result_{oid}" in st.session_state
+
+    if is_running:
+        any_running = True
+
+    # 标签
+    if is_running:
+        pct   = int(gen.get("progress", 0) * 100)
+        badge = f"⏳ 生成中 {pct}%"
+    elif is_error:
+        badge = "❌ 生成出错"
     elif has_result:
-        status_badge = "🟢 待下载"
+        badge = "🟢 待下载"
+    elif db_status == "已生成":
+        badge = "✅ 已生成"
+    else:
+        badge = "🟡 待处理"
 
     group_name   = order.get("group_name", "未知群")
     name         = order.get("name", "未知")
     submitted_at = order.get("submitted_at", "")
 
     with st.expander(
-        f"{status_badge}  |  【{group_name}】{name} · {submitted_at}",
-        expanded=is_gen or has_result,
+        f"{badge}  |  【{group_name}】{name} · {submitted_at}",
+        expanded=is_running or has_result or is_error,
     ):
+        # ── 生成中 ────────────────────────────────────
+        if is_running:
+            prog = gen.get("progress", 0.0)
+            msg  = gen.get("msg", "")
+            st.progress(prog)
+            st.info(f"⏳ {msg}")
+            st.caption("生成期间可继续操作其他订单")
 
-        # ── 生成中：运行生成逻辑 ──────────────────────
-        if is_gen:
-            st.markdown(f"**正在为 {name} 生成文案，请稍候（约 2-3 分钟）…**")
-            pb   = st.progress(0.0)
-            stxt = st.empty()
-
-            raw = _order_to_raw(order)
-            fields = parse_form(raw)
-            try:
-                client, prompt_file = build_client(fields)
-            except Exception as e:
-                stxt.error(f"信息解析失败：{e}")
-                st.session_state.pop("_current_gen_id", None)
+        # ── 出错 ──────────────────────────────────────
+        elif is_error:
+            st.error(f"生成失败：{gen.get('error', '未知错误')}")
+            if st.button("🔄 重试", key=f"retry_{oid}", type="primary"):
+                _start_gen(order, api_key)
                 st.rerun()
-                st.stop()
 
-            stxt.info("⏳ 正在生成第 1 批...")
-            try:
-                scripts = generate_scripts(
-                    client, api_key,
-                    progress_callback=lambda p, m, _pb=pb, _s=stxt: (
-                        _pb.progress(p), _s.info(f"⏳ {m}")
-                    ),
-                )
-            except Exception as e:
-                stxt.error(f"生成失败：{e}")
-                st.session_state.pop("_current_gen_id", None)
-                st.rerun()
-                st.stop()
-
-            pb.progress(1.0)
-            stxt.success(f"✅ 生成完成！共 {len(scripts)} 条")
-
-            try:
-                word_bytes = make_word_bytes(client, scripts)
-            except Exception as e:
-                stxt.error(f"Word 生成失败：{e}")
-                st.session_state.pop("_current_gen_id", None)
-                st.rerun()
-                st.stop()
-
-            # 存结果，清当前任务，触发下一个（如有）
-            st.session_state[f"_result_{oid}"] = {
-                "bytes":    word_bytes,
-                "filename": f"{client['name']}_{client.get('company','')[:8]}_30条文案.docx",
-                "count":    len(scripts),
-                "client":   client,
-            }
-            st.session_state.pop("_current_gen_id", None)
-            update_order(oid, {
-                "status":       "已生成",
-                "processed_by": st.session_state.get("username", ""),
-                "processed_at": now_beijing(),
-            })
-            st.rerun()
-
-        # ── 待下载：展示下载按钮 ──────────────────────
+        # ── 待下载 ────────────────────────────────────
         elif has_result:
             result = st.session_state[f"_result_{oid}"]
-            st.success(f"✅ 文案已生成完毕，共 {result['count']} 条，请点击下载")
+            st.success(f"✅ 文案已生成完毕，共 {result['count']} 条")
             dl = st.download_button(
                 label=f"⬇️ 下载 Word 文档（{result['count']}条）",
                 data=result["bytes"],
@@ -264,12 +275,12 @@ for order in filtered:
             if dl:
                 st.session_state.pop(f"_result_{oid}", None)
                 st.rerun()
-            if st.button("重新生成", key=f"regen_{oid}"):
+            if st.button("🔄 重新生成", key=f"regen_{oid}"):
                 st.session_state.pop(f"_result_{oid}", None)
-                st.session_state["_current_gen_id"] = oid
+                _start_gen(order, api_key)
                 st.rerun()
 
-        # ── 普通状态：信息展示 + 操作按钮 ──────────────
+        # ── 普通：展示信息 + 操作按钮 ─────────────────
         else:
             col1, col2 = st.columns(2)
             with col1:
@@ -299,15 +310,15 @@ for order in filtered:
                 st.text(order.get("differentiation"))
 
             st.divider()
-            btn_col1, btn_col2, btn_col3 = st.columns([2, 2, 1])
+            btn1, btn2, btn3 = st.columns([2, 2, 1])
 
-            with btn_col1:
+            with btn1:
                 if st.button("🚀 立即生成文案", key=f"gen_{oid}", type="primary"):
-                    st.session_state["_current_gen_id"] = oid
+                    _start_gen(order, api_key)
                     st.rerun()
 
-            with btn_col2:
-                if status == "待处理":
+            with btn2:
+                if db_status == "待处理":
                     if st.button("✅ 标记为已生成", key=f"done_{oid}"):
                         update_order(oid, {
                             "status":       "已生成",
@@ -316,19 +327,24 @@ for order in filtered:
                         })
                         st.rerun()
 
-            with btn_col3:
-                confirm_key = f"_confirm_del_{oid}"
-                if st.session_state.get(confirm_key):
+            with btn3:
+                ckey = f"_confirm_del_{oid}"
+                if st.session_state.get(ckey):
                     st.warning("确认删除？")
                     c1, c2 = st.columns(2)
                     if c1.button("确认", key=f"yes_{oid}", type="primary"):
                         delete_order(oid)
-                        st.session_state.pop(confirm_key, None)
+                        st.session_state.pop(ckey, None)
                         st.rerun()
                     if c2.button("取消", key=f"no_{oid}"):
-                        st.session_state.pop(confirm_key, None)
+                        st.session_state.pop(ckey, None)
                         st.rerun()
                 else:
                     if st.button("🗑️ 删除", key=f"del_{oid}"):
-                        st.session_state[confirm_key] = True
+                        st.session_state[ckey] = True
                         st.rerun()
+
+# ── 有任务在后台跑时，每 1.5s 自动刷新进度 ──────────
+if any_running:
+    time.sleep(1.5)
+    st.rerun()
