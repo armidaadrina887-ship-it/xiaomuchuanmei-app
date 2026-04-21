@@ -17,9 +17,10 @@ st.set_page_config(
     layout="centered",
 )
 
-# 先隐藏内容，避免未登录时页面内容闪现
+# 最早注入：隐藏原生英文导航 + 隐藏内容直到鉴权完成
 st.markdown("""
 <style>
+[data-testid="stSidebarNav"]              { display: none !important; }
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)

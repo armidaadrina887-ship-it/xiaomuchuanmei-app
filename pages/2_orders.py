@@ -15,9 +15,10 @@ st.set_page_config(
     layout="wide",
 )
 
-# 先隐藏内容，避免未登录时内容闪现一帧
+# 最早注入：隐藏原生英文导航 + 隐藏内容直到鉴权完成
 st.markdown("""
 <style>
+[data-testid="stSidebarNav"]              { display: none !important; }
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -87,26 +88,33 @@ with col_count:
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
 
-# ── 批量生成区 ────────────────────────────────────────
-pending_orders = [o for o in filtered if o.get("status") == "待处理"]
+# ── 批量操作栏（始终可见，紧贴列表顶部）─────────────
+pending_orders = [o for o in orders if o.get("status") == "待处理"]
 if pending_orders:
-    with st.expander(f"📦 批量生成（选择多个待处理订单）", expanded=False):
-        st.caption("勾选订单后点击「批量生成」，将依次生成并在文案页统一下载")
-        selected_ids = []
-        for o in pending_orders:
-            if st.checkbox(
-                f"【{o.get('group_name','—')}】{o.get('name','—')} · {o.get('shop','—')} · {o.get('submitted_at','')}",
-                key=f"batch_chk_{o['id']}",
-            ):
-                selected_ids.append(o["id"])
+    st.markdown("""
+<div style='background:#FFF4EE;border:1.5px solid #E65000;border-radius:10px;padding:12px 16px;margin-bottom:8px'>
+<b style='color:#E65000'>📦 批量生成</b>
+<span style='color:#555;font-size:13px;margin-left:8px'>勾选下方订单 → 点击「批量生成」→ 跳到文案页依次处理</span>
+</div>
+""", unsafe_allow_html=True)
 
-        if selected_ids:
-            if st.button(f"🚀 批量生成选中订单（{len(selected_ids)}个）", type="primary"):
-                batch_queue = []
-                for o in pending_orders:
-                    if o["id"] not in selected_ids:
-                        continue
-                    raw_text = f"""出镜称呼：{o.get('name', '')}
+    selected_ids = []
+    sel_cols = st.columns([0.05, 0.95])
+    for o in pending_orders:
+        chk = st.checkbox(
+            f"【{o.get('group_name','—')}】**{o.get('name','—')}** · {o.get('shop','—')} · {o.get('submitted_at','')}",
+            key=f"batch_chk_{o['id']}",
+        )
+        if chk:
+            selected_ids.append(o["id"])
+
+    btn_label = f"🚀 批量生成选中订单（{len(selected_ids)}个）" if selected_ids else "请勾选订单"
+    if st.button(btn_label, type="primary", disabled=not selected_ids, use_container_width=True):
+        batch_queue = []
+        for o in pending_orders:
+            if o["id"] not in selected_ids:
+                continue
+            raw_text = f"""出镜称呼：{o.get('name', '')}
 性别：{o.get('gender', '')}
 店铺信息名称：{o.get('shop', '')}
 城市名字：{o.get('city', '')}
@@ -123,9 +131,9 @@ if pending_orders:
 能解决的痛点：{o.get('pain', '')}
 营业时间：{o.get('hours', '')}
 补充信息：{o.get('extra', '')}"""
-                    batch_queue.append({"raw": raw_text, "order_id": o["id"], "name": o.get("name", "")})
-                st.session_state["batch_queue"] = batch_queue
-                st.switch_page("streamlit_app.py")
+            batch_queue.append({"raw": raw_text, "order_id": o["id"], "name": o.get("name", "")})
+        st.session_state["batch_queue"] = batch_queue
+        st.switch_page("streamlit_app.py")
 
 st.divider()
 
