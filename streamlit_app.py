@@ -3,12 +3,15 @@
 """
 import streamlit as st
 import os
+import extra_streamlit_components as stx
 from core import (
     parse_form, build_client, generate_scripts,
     make_word_bytes, INDUSTRY_NAMES
 )
 from db import update_order, now_beijing
 from version import VERSION
+
+_COOKIE_NAME = "xm_auth_v1"
 
 # ── 页面配置 ──────────────────────────────────────
 st.set_page_config(
@@ -51,14 +54,39 @@ a { color: #E65000 !important; }
 </style>
 """
 
-# ── 登录验证 ──────────────────────────────────────
-def check_login(username, password):
+# ── Cookie 管理器（浏览器持久化登录状态）─────────────
+_cookies = stx.CookieManager(key="xm_cookie_main")
+
+def _check_login(username, password):
     try:
-        users = st.secrets["users"]
-        return users.get(username) == password
+        return st.secrets["users"].get(username) == password
     except Exception:
         return False
 
+def _user_exists(username):
+    try:
+        return username in st.secrets["users"]
+    except Exception:
+        return False
+
+def _do_login(username: str):
+    st.session_state["logged_in"] = True
+    st.session_state["username"]  = username
+    _cookies.set(_COOKIE_NAME, username)
+
+def _do_logout():
+    _cookies.delete(_COOKIE_NAME)
+    st.session_state.clear()
+    st.rerun()
+
+# ── Cookie 自动登录（刷新页面保持登录）────────────────
+if not st.session_state.get("logged_in"):
+    saved = _cookies.get(_COOKIE_NAME)
+    if saved and _user_exists(saved):
+        st.session_state["logged_in"] = True
+        st.session_state["username"]  = saved
+
+# ── 登录页 ────────────────────────────────────────────
 def login_page():
     st.markdown(ORANGE_CSS + """
 <style>
@@ -78,14 +106,11 @@ section[data-testid="stSidebar"] { display: none !important; }
         password = st.text_input("密码", type="password", placeholder="请输入密码")
         submitted = st.form_submit_button("登录", use_container_width=True, type="primary")
         if submitted:
-            if check_login(username, password):
-                st.session_state["logged_in"] = True
-                st.session_state["username"] = username
-                # form submit 本身触发 rerun，不需要额外 st.rerun()
+            if _check_login(username, password):
+                _do_login(username)
             else:
                 st.error("用户名或密码错误")
 
-# 未登录：只显示登录框，不渲染任何导航
 if not st.session_state.get("logged_in"):
     login_page()
     st.stop()
@@ -103,16 +128,15 @@ with st.sidebar:
         f"color:#E65000'>🎬 晓牧传媒后台</div>",
         unsafe_allow_html=True,
     )
-    st.page_link("streamlit_app.py",      label="✍️  生成文案",  )
-    st.page_link("pages/2_orders.py",     label="📋  订单管理",  )
+    st.page_link("streamlit_app.py",  label="✍️  生成文案")
+    st.page_link("pages/2_orders.py", label="📋  订单管理")
     st.divider()
     st.markdown(
         f"<span style='font-size:12px;color:#999'>👤 {st.session_state['username']}</span>",
         unsafe_allow_html=True,
     )
     if st.button("退出登录", use_container_width=True):
-        st.session_state.clear()
-        st.rerun()
+        _do_logout()
 
 # ── 顶部标题 ──────────────────────────────────────
 col_title, col_ver = st.columns([5, 1])

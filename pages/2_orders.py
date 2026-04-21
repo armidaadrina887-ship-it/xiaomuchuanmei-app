@@ -8,11 +8,15 @@ import time
 import streamlit as st
 import sys
 from pathlib import Path
+import extra_streamlit_components as stx
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, build_client, generate_scripts, make_word_bytes, INDUSTRY_NAMES
 from db import load_orders, update_order, delete_order, now_beijing
 from version import VERSION
+
+_COOKIE_NAME = "xm_auth_v1"
+_cookies = stx.CookieManager(key="xm_cookie_orders")
 
 st.set_page_config(
     page_title="晓牧传媒 · 订单管理",
@@ -54,6 +58,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
     if st.button("退出登录", use_container_width=True):
+        _cookies.delete(_COOKIE_NAME)
         st.session_state.clear()
         st.switch_page("streamlit_app.py")
 
