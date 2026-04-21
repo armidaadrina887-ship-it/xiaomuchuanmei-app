@@ -3,6 +3,7 @@
 """
 import streamlit as st
 import sys
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,6 +27,32 @@ header[data-testid="stHeader"]   { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
+
+# ── 提交锁：防止重复提交 ──────────────────────────────
+# 表单数据已存入 session_state，正在调用 Supabase 写入
+if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
+    st.markdown(
+        "<div style='text-align:center;padding:60px 20px'>"
+        "<div style='font-size:48px'>⏳</div>"
+        "<h3>正在提交，请稍候…</h3>"
+        "<p style='color:#888'>请勿关闭页面或重复点击</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    order = st.session_state.pop("_pending_order")
+    try:
+        insert_order(order)
+        for k in list(st.session_state.keys()):
+            if k.startswith("pf_") or k in ("step1_done", "missing_fields", "_submitting"):
+                st.session_state.pop(k, None)
+        st.session_state["form_submitted"] = True
+        st.session_state["submitted_name"] = order["name"]
+    except Exception as e:
+        st.session_state.pop("_submitting", None)
+        st.error(f"提交失败，请截图联系工作人员：{e}")
+        st.stop()
+    st.rerun()
+    st.stop()
 
 # ── 提交成功页 ────────────────────────────────────────
 if st.session_state.get("form_submitted"):
@@ -219,6 +246,10 @@ with st.form("client_form"):
 
 # ── 提交处理 ──────────────────────────────────────────
 if submitted:
+    # 已有提交在进行中，忽略重复点击
+    if st.session_state.get("_submitting"):
+        st.stop()
+
     required_fields = {
         "微信群名称": group_name,
         "出镜称呼": name,
@@ -240,8 +271,9 @@ if submitted:
         st.session_state["missing_fields"] = missing
         st.error(f"⚠️ 还有 {len(missing)} 项未填写，已在下方标红提示，请补充后再提交")
     else:
-        order = {
-            "id":              now_beijing().replace("-","").replace(":","").replace(" ",""),
+        # 保存订单数据，设提交锁，立即 rerun 显示 loading 页
+        st.session_state["_pending_order"] = {
+            "id":              uuid.uuid4().hex[:12] + now_beijing().replace("-","").replace(":","").replace(" ",""),
             "submitted_at":    now_beijing(),
             "status":          "待处理",
             "group_name":      group_name.strip(),
@@ -263,14 +295,5 @@ if submitted:
             "hours":           hours.strip(),
             "extra":           extra.strip(),
         }
-        try:
-            insert_order(order)
-            # 清除所有状态
-            for k in list(st.session_state.keys()):
-                if k.startswith("pf_") or k in ("step1_done", "missing_fields"):
-                    del st.session_state[k]
-            st.session_state["form_submitted"] = True
-            st.session_state["submitted_name"] = name.strip()
-            st.rerun()
-        except Exception as e:
-            st.error(f"提交失败，请截图联系工作人员：{e}")
+        st.session_state["_submitting"] = True
+        st.rerun()  # 立即跳到 loading 页，Supabase 写入在下一帧执行
