@@ -16,7 +16,7 @@ st.set_page_config(
     layout="centered",
 )
 
-# ── 隐藏侧边栏 ────────────────────────────────────────
+# 客户填表页：始终隐藏侧边栏，避免客户误点导航导致数据丢失
 st.markdown("""
 <style>
 [data-testid="stSidebarNav"]     { display: none !important; }

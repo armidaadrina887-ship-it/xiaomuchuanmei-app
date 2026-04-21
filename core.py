@@ -79,7 +79,7 @@ _ZUI_REPLACEMENTS = [
     ("最难",   "确实难"),
     ("最简单", "比较简单"),
     ("最重要", "很关键"),
-    ("最关键", "最核心的"),
+    ("最关键", "关键"),
     ("最核心", "核心"),
     ("最大的", "很大"),
     ("最小的", "很小"),
@@ -211,13 +211,13 @@ def post_process_scripts(scripts, client_name=''):
         for part_idx, part in enumerate(full_parts):
             new_part = part
             for word, (limit, replacement) in _FREQ_LIMITS.items():
-                while word in new_part:
+                # 先统计本段内该词出现次数，逐个决定是否替换
+                occurrences = new_part.count(word)
+                for _ in range(occurrences):
                     word_counters[word] += 1
                     if word_counters[word] > limit:
                         new_part = new_part.replace(word, replacement, 1)
                         replacements_made.append({'script': s['number'], 'field': 'freq', 'type': word})
-                    else:
-                        break  # 不超出则保留，继续下一次统计
             if new_part != part:
                 if part_idx == 0:
                     s['title'] = new_part
@@ -244,7 +244,7 @@ def post_process_scripts(scripts, client_name=''):
 
     # ── Step 4: 结尾配额控制（硬引导≤6条）───────────
     hard_count = 0
-    HARD_LIMIT = 6
+    HARD_LIMIT = 8
     for s in scripts:
         last_d = _get_last_dialogue(s)
         ending_type = _classify_ending(last_d)
@@ -623,24 +623,28 @@ def get_field(fields, *keys, default=''):
     return default
 
 def build_client(fields):
-    name     = get_field(fields, '出镜称呼', '主理人姓名', '姓名')
-    age      = get_field(fields, '年龄')
-    gender   = get_field(fields, '性别')
-    location = extract_city(get_field(fields, '城市名字', '地点', '城市'))
-    shop_pos = extract_city(get_field(fields, '店铺位置', '位置'))
-    shop     = get_field(fields, '店铺信息名称', '店名', '品牌名称', '公司名')
-    hours    = get_field(fields, '营业时间')
-    story    = get_field(fields, '创业经历', '入行故事', '故事')
-    main_biz = get_field(fields, '主营业务', '主营')
-    product  = get_field(fields, '主推产品', '主推', '主营产品', '招牌产品')
-    feature  = get_field(fields, '产品特点', '卖点', '特点')
-    target   = get_field(fields, '受众人群', '目标客户', '客户群体')
-    advantage= get_field(fields, '核心优势', '优势')
-    pain     = get_field(fields, '痛点', '解决客户')
-    best     = get_field(fields, '客户喜好', '卖得多', '爆款')
-    scale    = get_field(fields, '公司规模', '规模')
-    b_or_c   = get_field(fields, 'B端', '对接')
-    identity = get_field(fields, '身份', '想体现')
+    name        = get_field(fields, '出镜称呼', '主理人姓名', '姓名')
+    age         = get_field(fields, '年龄')
+    gender      = get_field(fields, '性别')
+    years       = get_field(fields, '从业年限', '年限')
+    location    = extract_city(get_field(fields, '城市名字', '地点', '城市'))
+    shop_pos    = extract_city(get_field(fields, '店铺位置', '位置'))
+    shop        = get_field(fields, '店铺信息名称', '店名', '品牌名称', '公司名')
+    hours       = get_field(fields, '营业时间')
+    story       = get_field(fields, '创业经历', '入行故事', '故事')
+    hard_time   = get_field(fields, '最难的时期', '最难熬', '最难', '困难', '低谷')
+    best_case   = get_field(fields, '客户案例', '印象最深', '印象', '客户故事')
+    diff        = get_field(fields, '与同行差异', '与同行', '差异', '不同')
+    main_biz    = get_field(fields, '主营业务', '主营')
+    product     = get_field(fields, '主推产品', '主推', '主营产品', '招牌产品')
+    feature     = get_field(fields, '产品特点', '卖点', '特点')
+    target      = get_field(fields, '受众人群', '目标客户', '客户群体', '目标客群')
+    advantage   = get_field(fields, '核心优势', '优势')
+    pain        = get_field(fields, '痛点', '解决客户')
+    best        = get_field(fields, '客户喜好', '卖得多', '爆款')
+    scale       = get_field(fields, '公司规模', '规模')
+    b_or_c      = get_field(fields, 'B端', '对接')
+    identity    = get_field(fields, '身份', '想体现')
 
     is_b2b = 'B' in b_or_c.upper() and 'C' not in b_or_c.upper()
 
@@ -652,7 +656,7 @@ def build_client(fields):
     msg = f"""以下是客户信息，请生成30条短视频分镜脚本。
 
 【出镜称呼】：{name}
-【性别】：{gender}  【年龄】：{age}
+【性别】：{gender}  【年龄】：{age}  【从业年限】：{years}
 【店铺/品牌】：{shop}
 【地点】：{location} {shop_pos}
 【营业时间】：{hours}
@@ -661,6 +665,9 @@ def build_client(fields):
 【主推产品】：{product}
 【产品特点/卖点】：{feature}
 【创业经历/故事】：{story}
+【最难熬的时期】：{hard_time}
+【印象最深的客户案例】：{best_case}
+【与同行最大的不同】：{diff}
 【核心优势】：{advantage}
 【目标受众】：{target}
 【能解决的痛点】：{pain}
@@ -763,6 +770,7 @@ def generate_scripts(client, api_key, progress_callback=None):
     # ── 阶段二：10批×3条，每批重注入规则包 ────────────
     # 每批只生成3条：防止模型在同批次内创意耗尽，导致第4-5条重复前几条
     all_scripts = []
+    failed_batches = []
 
     for batch_idx in range(10):
         batch_start = batch_idx * 3 + 1
@@ -855,6 +863,8 @@ def generate_scripts(client, api_key, progress_callback=None):
                 if 'difficulty' not in s:
                     s['difficulty'] = '深度版'
             all_scripts.extend(parsed)
+        else:
+            failed_batches.append(f"{batch_start}-{batch_end}")
 
     # ── 阶段三：程序级扫描 ─────────────────────────────
     opening_violations = scan_forbidden_openings(all_scripts)
@@ -878,6 +888,9 @@ def generate_scripts(client, api_key, progress_callback=None):
 
     # ── 阶段四：程序级后处理（最字+词频+C2+结尾配额）──────
     all_scripts, zui_replacements = post_process_scripts(all_scripts, client.get('name', ''))
+
+    if failed_batches:
+        client['failed_batches'] = failed_batches
 
     if progress_callback:
         progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
@@ -910,7 +923,7 @@ def make_word_bytes(client, scripts):
     p.paragraph_format.space_before = Pt(60)
     r = p.add_run(client['company'])
     r.font.size = Pt(26); r.font.bold = True
-    r.font.color.rgb = RGBColor(0xCC, 0x33, 0x00)
+    r.font.color.rgb = RGBColor(0xCC, 0x55, 0x00)
 
     p2 = doc.add_paragraph()
     p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -970,7 +983,7 @@ def make_word_bytes(client, scripts):
         p_cat.paragraph_format.space_after  = Pt(10)
         r_cat = p_cat.add_run(f'▌ {cat}（{len(group)}条）')
         r_cat.font.size = Pt(15); r_cat.font.bold = True
-        r_cat.font.color.rgb = RGBColor(0xCC,0x33,0x00)
+        r_cat.font.color.rgb = RGBColor(0xCC,0x55,0x00)
         for s in group:
             _add_script_block(doc, s)
 
@@ -990,7 +1003,7 @@ def _add_script_block(doc, s):
     p.paragraph_format.space_after  = Pt(4)
     r_n = p.add_run(f'第{s.get("number","")}条  ')
     r_n.font.size = Pt(13); r_n.font.bold = True
-    r_n.font.color.rgb = RGBColor(0xCC,0x33,0x00)
+    r_n.font.color.rgb = RGBColor(0xCC,0x55,0x00)
     r_t = p.add_run(s.get('title',''))
     r_t.font.size = Pt(13); r_t.font.bold = True
 
@@ -1042,7 +1055,7 @@ def _add_script_block(doc, s):
     p_tip.paragraph_format.space_after  = Pt(12)
     rl = p_tip.add_run('📌 拍摄建议  ')
     rl.font.size = Pt(10); rl.font.bold = True
-    rl.font.color.rgb = RGBColor(0xC0,0x5A,0x00)
+    rl.font.color.rgb = RGBColor(0xC0,0x62,0x00)
     rt = p_tip.add_run(s.get('tips',''))
     rt.font.size = Pt(10)
     rt.font.color.rgb = RGBColor(0x44,0x44,0x44)

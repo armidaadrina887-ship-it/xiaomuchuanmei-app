@@ -8,6 +8,7 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from db import load_orders, update_order, delete_order
+from version import VERSION
 
 st.set_page_config(
     page_title="晓牧传媒 · 订单管理",
@@ -20,9 +21,48 @@ if not st.session_state.get("logged_in"):
     st.switch_page("streamlit_app.py")
     st.stop()
 
+# ── 橙色主题 + 管理后台侧边栏（不含客户填表页）────────
+st.markdown("""
+<style>
+[data-testid="stSidebarNav"] { display: none !important; }
+button[kind="primary"] {
+    background-color: #E65000 !important;
+    border-color: #E65000 !important;
+}
+button[kind="primary"]:hover {
+    background-color: #CC4800 !important;
+    border-color: #CC4800 !important;
+}
+a { color: #E65000 !important; }
+</style>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown(
+        f"<div style='padding:12px 0 8px;font-size:15px;font-weight:600;"
+        f"color:#E65000'>🎬 晓牧传媒后台</div>",
+        unsafe_allow_html=True,
+    )
+    st.page_link("streamlit_app.py",      label="✍️  生成文案")
+    st.page_link("pages/2_orders.py",     label="📋  订单管理")
+    st.divider()
+    st.markdown(
+        f"<span style='font-size:12px;color:#999'>👤 {st.session_state.get('username','')}</span>",
+        unsafe_allow_html=True,
+    )
+    if st.button("退出登录", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
+
 # ── 页面标题 ──────────────────────────────────────────
-st.title("📋 订单管理")
-st.caption(f"当前用户：{st.session_state.get('username', '')}  |  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+col_t, col_v = st.columns([6, 1])
+col_t.title("📋 订单管理")
+col_v.markdown(
+    f"<br><span style='background:#E65000;color:white;padding:3px 10px;"
+    f"border-radius:12px;font-size:13px'>v{VERSION}</span>",
+    unsafe_allow_html=True,
+)
+st.caption(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
 orders = load_orders()
 
@@ -129,6 +169,18 @@ for idx, order in enumerate(filtered):
                     st.rerun()
 
         with btn_col3:
-            if st.button("🗑️ 删除", key=f"del_{order['id']}"):
-                delete_order(order["id"])
-                st.rerun()
+            confirm_key = f"confirm_del_{order['id']}"
+            if st.session_state.get(confirm_key):
+                st.warning("确认删除？")
+                c1, c2 = st.columns(2)
+                if c1.button("确认", key=f"yes_{order['id']}", type="primary"):
+                    delete_order(order["id"])
+                    st.session_state.pop(confirm_key, None)
+                    st.rerun()
+                if c2.button("取消", key=f"no_{order['id']}"):
+                    st.session_state.pop(confirm_key, None)
+                    st.rerun()
+            else:
+                if st.button("🗑️ 删除", key=f"del_{order['id']}"):
+                    st.session_state[confirm_key] = True
+                    st.rerun()
