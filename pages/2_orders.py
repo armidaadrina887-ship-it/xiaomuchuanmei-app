@@ -20,7 +20,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# 最早注入：隐藏原生英文导航 + 隐藏内容直到鉴权完成
 st.markdown("""
 <style>
 [data-testid="stSidebarNav"]               { display: none !important; }
@@ -67,17 +66,18 @@ if not api_key:
     st.error("未配置 API Key，请联系管理员")
     st.stop()
 
-# ── 后台生成状态（模块级，跨 rerun 保持）────────────────
-# key: (session_state_id, order_id) → {status, progress, msg, ...}
-_GEN: dict = {}
-_GEN_LOCK = threading.Lock()
+# ── 后台生成状态（cache_resource 保证跨 rerun 不丢失）──
+@st.cache_resource
+def _gen_store():
+    return {"data": {}, "lock": threading.Lock()}
 
 def _skey(oid: str) -> tuple:
     return (id(st.session_state), oid)
 
 def _get_gen(oid: str) -> dict:
-    with _GEN_LOCK:
-        return dict(_GEN.get(_skey(oid), {}))
+    store = _gen_store()
+    with store["lock"]:
+        return dict(store["data"].get(_skey(oid), {}))
 
 def _order_to_raw(o: dict) -> str:
     return f"""出镜称呼：{o.get('name', '')}
@@ -99,13 +99,13 @@ def _order_to_raw(o: dict) -> str:
 补充信息：{o.get('extra', '')}"""
 
 def _start_gen(order: dict, api_key: str):
-    """启动后台线程生成该订单文案"""
-    oid  = order["id"]
-    skey = _skey(oid)
-    with _GEN_LOCK:
-        if _GEN.get(skey, {}).get("status") == "running":
-            return  # 已在生成中，防止重复启动
-        _GEN[skey] = {"status": "running", "progress": 0.0, "msg": "准备中..."}
+    store = _gen_store()
+    oid   = order["id"]
+    skey  = _skey(oid)
+    with store["lock"]:
+        if store["data"].get(skey, {}).get("status") == "running":
+            return
+        store["data"][skey] = {"status": "running", "progress": 0.0, "msg": "准备中..."}
 
     def run():
         try:
@@ -114,15 +114,15 @@ def _start_gen(order: dict, api_key: str):
             client, _ = build_client(fields)
 
             def on_progress(p, m):
-                with _GEN_LOCK:
-                    if skey in _GEN:
-                        _GEN[skey].update({"progress": p, "msg": m})
+                with store["lock"]:
+                    if skey in store["data"]:
+                        store["data"][skey].update({"progress": p, "msg": m})
 
             scripts    = generate_scripts(client, api_key, progress_callback=on_progress)
             word_bytes = make_word_bytes(client, scripts)
 
-            with _GEN_LOCK:
-                _GEN[skey] = {
+            with store["lock"]:
+                store["data"][skey] = {
                     "status":   "done",
                     "bytes":    word_bytes,
                     "filename": f"{client['name']}_{client.get('company','')[:8]}_30条文案.docx",
@@ -130,8 +130,8 @@ def _start_gen(order: dict, api_key: str):
                     "client":   client,
                 }
         except Exception as e:
-            with _GEN_LOCK:
-                _GEN[skey] = {"status": "error", "error": str(e)}
+            with store["lock"]:
+                store["data"][skey] = {"status": "error", "error": str(e)}
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -156,13 +156,12 @@ col_filter, col_count = st.columns([3, 1])
 with col_filter:
     status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], horizontal=True)
 with col_count:
-    pending_cnt = sum(1 for o in orders if o.get("status") == "待处理")
-    st.metric("待处理", pending_cnt)
+    st.metric("待处理", sum(1 for o in orders if o.get("status") == "待处理"))
 
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
 
-# ── 批量操作栏（仅待处理订单）────────────────────────
+# ── 批量操作栏 ────────────────────────────────────────
 pending_orders = [o for o in orders if o.get("status") == "待处理"]
 if pending_orders:
     st.markdown("""
@@ -170,7 +169,7 @@ if pending_orders:
             padding:12px 16px;margin-bottom:8px'>
 <b style='color:#E65000'>📦 批量生成</b>
 <span style='color:#555;font-size:13px;margin-left:8px'>
-勾选待处理订单 → 批量生成（多个订单同时在后台运行，互不影响）
+勾选待处理订单 → 批量生成（多个订单同时在后台运行，页面不冻结）
 </span>
 </div>
 """, unsafe_allow_html=True)
@@ -178,10 +177,8 @@ if pending_orders:
     for o in pending_orders:
         gen = _get_gen(o["id"])
         is_running = gen.get("status") == "running"
-        label = (
-            f"⏳ 生成中 {int(gen.get('progress',0)*100)}%  · "
-            if is_running else ""
-        ) + f"【{o.get('group_name','—')}】**{o.get('name','—')}** · {o.get('shop','—')} · {o.get('submitted_at','')}"
+        label = (f"⏳ {int(gen.get('progress',0)*100)}%  · " if is_running else "") + \
+                f"【{o.get('group_name','—')}】**{o.get('name','—')}** · {o.get('shop','—')} · {o.get('submitted_at','')}"
         if st.checkbox(label, key=f"batch_chk_{o['id']}", disabled=is_running):
             selected_ids.append(o["id"])
 
@@ -199,16 +196,18 @@ st.divider()
 any_running = False
 
 for order in filtered:
-    oid   = order["id"]
-    gen   = _get_gen(oid)
-    gst   = gen.get("status")          # "running" / "done" / "error" / None
+    oid       = order["id"]
+    gen       = _get_gen(oid)
+    gst       = gen.get("status")
     db_status = order.get("status", "待处理")
+    is_editing = st.session_state.get(f"_editing_{oid}", False)
 
-    # 已完成：把结果搬进 session_state，清理模块级 dict
+    # 完成：搬进 session_state，更新数据库
     if gst == "done":
         st.session_state[f"_result_{oid}"] = gen
-        with _GEN_LOCK:
-            _GEN.pop(_skey(oid), None)
+        store = _gen_store()
+        with store["lock"]:
+            store["data"].pop(_skey(oid), None)
         update_order(oid, {
             "status":       "已生成",
             "processed_by": st.session_state.get("username", ""),
@@ -216,21 +215,21 @@ for order in filtered:
         })
         gst = None
 
-    is_running  = (gst == "running")
-    is_error    = (gst == "error")
-    has_result  = f"_result_{oid}" in st.session_state
+    is_running = (gst == "running")
+    is_error   = (gst == "error")
+    has_result = f"_result_{oid}" in st.session_state
 
     if is_running:
         any_running = True
 
-    # 标签
     if is_running:
-        pct   = int(gen.get("progress", 0) * 100)
-        badge = f"⏳ 生成中 {pct}%"
+        badge = f"⏳ 生成中 {int(gen.get('progress', 0)*100)}%"
     elif is_error:
         badge = "❌ 生成出错"
     elif has_result:
         badge = "🟢 待下载"
+    elif is_editing:
+        badge = "✏️ 编辑中"
     elif db_status == "已生成":
         badge = "✅ 已生成"
     else:
@@ -242,14 +241,13 @@ for order in filtered:
 
     with st.expander(
         f"{badge}  |  【{group_name}】{name} · {submitted_at}",
-        expanded=is_running or has_result or is_error,
+        expanded=is_running or has_result or is_error or is_editing,
     ):
+
         # ── 生成中 ────────────────────────────────────
         if is_running:
-            prog = gen.get("progress", 0.0)
-            msg  = gen.get("msg", "")
-            st.progress(prog)
-            st.info(f"⏳ {msg}")
+            st.progress(gen.get("progress", 0.0))
+            st.info(f"⏳ {gen.get('msg', '')}")
             st.caption("生成期间可继续操作其他订单")
 
         # ── 出错 ──────────────────────────────────────
@@ -280,7 +278,68 @@ for order in filtered:
                 _start_gen(order, api_key)
                 st.rerun()
 
-        # ── 普通：展示信息 + 操作按钮 ─────────────────
+        # ── 编辑资料 ──────────────────────────────────
+        elif is_editing:
+            st.markdown("**编辑客户资料**")
+            with st.form(key=f"edit_form_{oid}"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    e_group  = st.text_input("微信群",     value=order.get("group_name", ""))
+                    e_name   = st.text_input("出镜称呼",   value=order.get("name", ""))
+                    e_gender = st.selectbox("性别", ["男", "女", "未填写"],
+                                            index=["男","女","未填写"].index(order.get("gender","未填写"))
+                                            if order.get("gender","未填写") in ["男","女","未填写"] else 2)
+                    e_shop   = st.text_input("店铺名称",   value=order.get("shop", ""))
+                    e_city   = st.text_input("城市",       value=order.get("city", ""))
+                    e_years  = st.text_input("从业年限",   value=order.get("years", ""))
+                    e_hours  = st.text_input("营业时间",   value=order.get("hours", ""))
+                with c2:
+                    e_biz    = st.text_input("主营业务",   value=order.get("main_biz", ""))
+                    e_prod   = st.text_input("主推产品",   value=order.get("product", ""))
+                    e_feat   = st.text_area("产品特点/卖点", value=order.get("feature", ""),  height=80)
+                    e_adv    = st.text_area("核心优势",    value=order.get("advantage", ""), height=80)
+                    e_target = st.text_input("目标客群",   value=order.get("target", ""))
+                    e_pain   = st.text_input("能解决的痛点", value=order.get("pain", ""))
+
+                e_story = st.text_area("创业经历/故事",        value=order.get("story", ""),         height=100)
+                e_hard  = st.text_area("最难熬的一段时期",     value=order.get("hard_time", ""),     height=80)
+                e_case  = st.text_area("印象最深的客户案例",   value=order.get("best_case", ""),     height=80)
+                e_diff  = st.text_area("你和同行最大的不同",   value=order.get("differentiation",""), height=80)
+                e_extra = st.text_area("补充信息",             value=order.get("extra", ""),         height=60)
+
+                save_col, cancel_col = st.columns(2)
+                saved    = save_col.form_submit_button("💾 保存", type="primary", use_container_width=True)
+                cancelled = cancel_col.form_submit_button("取消", use_container_width=True)
+
+            if saved:
+                update_order(oid, {
+                    "group_name":      e_group.strip(),
+                    "name":            e_name.strip(),
+                    "gender":          e_gender,
+                    "shop":            e_shop.strip(),
+                    "city":            e_city.strip(),
+                    "years":           e_years.strip(),
+                    "hours":           e_hours.strip(),
+                    "main_biz":        e_biz.strip(),
+                    "product":         e_prod.strip(),
+                    "feature":         e_feat.strip(),
+                    "advantage":       e_adv.strip(),
+                    "target":          e_target.strip(),
+                    "pain":            e_pain.strip(),
+                    "story":           e_story.strip(),
+                    "hard_time":       e_hard.strip(),
+                    "best_case":       e_case.strip(),
+                    "differentiation": e_diff.strip(),
+                    "extra":           e_extra.strip(),
+                })
+                st.session_state.pop(f"_editing_{oid}", None)
+                st.success("已保存")
+                st.rerun()
+            elif cancelled:
+                st.session_state.pop(f"_editing_{oid}", None)
+                st.rerun()
+
+        # ── 普通展示 + 操作按钮 ───────────────────────
         else:
             col1, col2 = st.columns(2)
             with col1:
@@ -296,21 +355,16 @@ for order in filtered:
                 st.markdown(f"**核心优势：** {order.get('advantage', '—')}")
                 st.markdown(f"**目标客群：** {order.get('target', '—')}")
                 st.markdown(f"**营业时间：** {order.get('hours', '—')}")
-
-            st.markdown("**创业故事：**")
-            st.text(order.get("story", "—"))
+            st.markdown("**创业故事：**"); st.text(order.get("story", "—"))
             if order.get("hard_time"):
-                st.markdown("**最难的时期：**")
-                st.text(order.get("hard_time"))
+                st.markdown("**最难的时期：**"); st.text(order.get("hard_time"))
             if order.get("best_case"):
-                st.markdown("**印象最深的客户案例：**")
-                st.text(order.get("best_case"))
+                st.markdown("**印象最深的客户案例：**"); st.text(order.get("best_case"))
             if order.get("differentiation"):
-                st.markdown("**与同行的不同：**")
-                st.text(order.get("differentiation"))
+                st.markdown("**与同行的不同：**"); st.text(order.get("differentiation"))
 
             st.divider()
-            btn1, btn2, btn3 = st.columns([2, 2, 1])
+            btn1, btn2, btn3, btn4 = st.columns([2, 2, 1, 1])
 
             with btn1:
                 if st.button("🚀 立即生成文案", key=f"gen_{oid}", type="primary"):
@@ -318,8 +372,13 @@ for order in filtered:
                     st.rerun()
 
             with btn2:
+                if st.button("✏️ 编辑资料", key=f"edit_{oid}"):
+                    st.session_state[f"_editing_{oid}"] = True
+                    st.rerun()
+
+            with btn3:
                 if db_status == "待处理":
-                    if st.button("✅ 标记为已生成", key=f"done_{oid}"):
+                    if st.button("✅ 已生成", key=f"done_{oid}"):
                         update_order(oid, {
                             "status":       "已生成",
                             "processed_by": st.session_state.get("username", ""),
@@ -327,20 +386,20 @@ for order in filtered:
                         })
                         st.rerun()
 
-            with btn3:
+            with btn4:
                 ckey = f"_confirm_del_{oid}"
                 if st.session_state.get(ckey):
-                    st.warning("确认删除？")
+                    st.warning("确认？")
                     c1, c2 = st.columns(2)
-                    if c1.button("确认", key=f"yes_{oid}", type="primary"):
+                    if c1.button("是", key=f"yes_{oid}", type="primary"):
                         delete_order(oid)
                         st.session_state.pop(ckey, None)
                         st.rerun()
-                    if c2.button("取消", key=f"no_{oid}"):
+                    if c2.button("否", key=f"no_{oid}"):
                         st.session_state.pop(ckey, None)
                         st.rerun()
                 else:
-                    if st.button("🗑️ 删除", key=f"del_{oid}"):
+                    if st.button("🗑️", key=f"del_{oid}"):
                         st.session_state[ckey] = True
                         st.rerun()
 
