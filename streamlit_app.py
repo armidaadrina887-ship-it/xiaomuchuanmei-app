@@ -126,7 +126,6 @@ col_ver.markdown(
 st.caption("粘贴客户信息表 → 自动识别行业 → 10批×3条生成 → 行业违禁词扫描 → 下载Word")
 
 # ── API Key ───────────────────────────────────────
-# （提前获取，批量模式也需要用）
 api_key = None
 try:
     api_key = st.secrets["KIMI_API_KEY"]
@@ -137,76 +136,7 @@ if not api_key:
     st.error("未配置 API Key，请联系管理员")
     st.stop()
 
-# ── 批量生成模式 ──────────────────────────────────
-if "batch_queue" in st.session_state:
-    batch_queue = st.session_state.pop("batch_queue")
-    st.info(f"📦 批量模式：共 {len(batch_queue)} 个订单，依次生成中...")
-    st.divider()
-
-    batch_results = []
-    for i, item in enumerate(batch_queue):
-        st.subheader(f"第 {i+1} / {len(batch_queue)} 个：{item['name']}")
-        pb  = st.progress(0.0)
-        stxt = st.empty()
-
-        fields = parse_form(item["raw"])
-        try:
-            client, prompt_file = build_client(fields)
-        except Exception as e:
-            stxt.error(f"解析失败：{e}")
-            continue
-
-        stxt.info(f"⏳ 开始生成 {client['name']} 的文案...")
-        try:
-            scripts = generate_scripts(
-                client, api_key,
-                progress_callback=lambda p, m, _pb=pb, _st=stxt: (_pb.progress(p), _st.info(f"⏳ {m}"))
-            )
-        except Exception as e:
-            stxt.error(f"生成失败：{e}")
-            continue
-
-        pb.progress(1.0)
-        stxt.success(f"✅ 完成！共 {len(scripts)} 条")
-
-        try:
-            word_bytes = make_word_bytes(client, scripts)
-        except Exception as e:
-            st.error(f"Word生成失败：{e}")
-            continue
-
-        batch_results.append({
-            "name":     client["name"],
-            "company":  client.get("company", ""),
-            "bytes":    word_bytes,
-            "filename": f"{client['name']}_{client.get('company','')[:8]}_30条文案.docx",
-            "order_id": item.get("order_id"),
-            "client":   client,
-            "scripts":  scripts,
-        })
-
-    if batch_results:
-        st.divider()
-        st.success(f"🎉 批量完成！{len(batch_results)} 个订单已全部生成，请逐一下载")
-        for r in batch_results:
-            dl = st.download_button(
-                label=f"⬇️ 下载：{r['name']} · {r['company'][:8]}（{len(r['scripts'])}条）",
-                data=r["bytes"],
-                file_name=r["filename"],
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True,
-                type="primary",
-                key=f"dl_batch_{r['order_id']}",
-            )
-            if dl and r["order_id"]:
-                update_order(r["order_id"], {
-                    "status":       "已生成",
-                    "processed_by": st.session_state.get("username", ""),
-                    "processed_at": now_beijing(),
-                })
-    st.stop()
-
-# ── 单条生成主界面 ─────────────────────────────────
+# ── 主界面 ────────────────────────────────────────
 st.divider()
 
 if "prefill_order" in st.session_state:
