@@ -2,13 +2,18 @@
 晓牧传媒 · 客户信息填写页（公开，无需登录）
 """
 import streamlit as st
+import streamlit.components.v1 as components
 import sys
 import uuid
+import json
 from pathlib import Path
+from streamlit_js_eval import streamlit_js_eval
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, get_field
 from db import insert_order, now_beijing
+
+_DRAFT_KEY = "xm_fill_draft_v1"
 
 st.set_page_config(
     page_title="晓牧传媒 · 客户填表",
@@ -27,6 +32,27 @@ header[data-testid="stHeader"]   { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
+
+# ── 草稿恢复：从 localStorage 读取上次填写内容（只读一次）──
+if not st.session_state.get("_draft_loaded"):
+    _raw = streamlit_js_eval(
+        js_expressions=f"localStorage.getItem('{_DRAFT_KEY}')",
+        key="_ls_read_draft",
+    )
+    if _raw is not None:                      # 组件已响应（None = 首帧还没返回）
+        st.session_state["_draft_loaded"] = True
+        if _raw and _raw not in ("null", "undefined", ""):
+            try:
+                _saved = json.loads(_raw)
+                _cnt = 0
+                for k, v in _saved.items():
+                    if k.startswith("pf_") and v and not st.session_state.get(k):
+                        st.session_state[k] = v
+                        _cnt += 1
+                if _cnt:
+                    st.session_state["_draft_restored"] = True
+            except Exception:
+                pass
 
 # ── 提交锁：防止重复提交 ──────────────────────────────
 # 表单数据已存入 session_state，正在调用 Supabase 写入
@@ -47,6 +73,11 @@ if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
                 st.session_state.pop(k, None)
         st.session_state["form_submitted"] = True
         st.session_state["submitted_name"] = order["name"]
+        # 提交成功，清除本地草稿
+        components.html(
+            f"<script>localStorage.removeItem('{_DRAFT_KEY}');</script>",
+            height=0,
+        )
         st.rerun()
     except Exception as e:
         st.session_state.pop("_submitting", None)
@@ -84,6 +115,20 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.divider()
+
+# ── 草稿恢复提示横幅 ──────────────────────────────────
+if st.session_state.get("_draft_restored"):
+    col_info, col_btn = st.columns([5, 1])
+    col_info.info("📂 已自动恢复上次填写的内容，继续完成后提交即可")
+    if col_btn.button("重新填", help="清除暂存内容，从头开始"):
+        for k in list(st.session_state.keys()):
+            if k.startswith("pf_") or k == "_draft_restored":
+                st.session_state.pop(k, None)
+        components.html(
+            f"<script>localStorage.removeItem('{_DRAFT_KEY}');</script>",
+            height=0,
+        )
+        st.rerun()
 
 # ── 第一步：群名称 + 称呼（门控）────────────────────────
 # 未完成第一步时，只显示入口字段，不展示完整表单
@@ -306,3 +351,19 @@ if submitted:
         }
         st.session_state["_submitting"] = True
         st.rerun()  # 立即跳到 loading 页，Supabase 写入在下一帧执行
+
+# ── 自动暂存到 localStorage（每次 rerun 触发，静默无感知）──
+_draft_data = {k: v for k, v in st.session_state.items() if k.startswith("pf_") and v}
+if _draft_data and st.session_state.get("step1_done"):
+    try:
+        _js_val = json.dumps(_draft_data, ensure_ascii=False)\
+            .replace("\\", "\\\\")\
+            .replace("'", "\\'")\
+            .replace("\n", "\\n")\
+            .replace("\r", "\\r")
+        components.html(
+            f"<script>try{{localStorage.setItem('{_DRAFT_KEY}','{_js_val}');}}catch(e){{}}</script>",
+            height=0,
+        )
+    except Exception:
+        pass
