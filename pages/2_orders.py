@@ -12,7 +12,7 @@ import extra_streamlit_components as stx
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, build_client, generate_scripts, make_word_bytes, INDUSTRY_NAMES
-from db import load_orders, update_order, delete_order, now_beijing
+from db import load_orders, update_order, delete_order, now_beijing, _local_load
 from version import VERSION
 
 _COOKIE_NAME = "xm_auth_v1"
@@ -152,8 +152,24 @@ st.caption(now_beijing())
 
 orders = load_orders()
 
-if not orders:
+# ── 本地备份订单检测（Supabase 失败时的应急数据）────────
+_local_orders = _local_load()
+if _local_orders:
+    st.warning(
+        f"⚠️ 检测到 **{len(_local_orders)} 条本地备份订单**（Supabase 曾提交失败时自动存储）。\n\n"
+        "这些订单**不在上方列表中**，服务器重启后将丢失。请尽快处理：\n\n"
+        "展开查看 ↓",
+        icon="🚨",
+    )
+    with st.expander(f"📂 本地备份订单（{len(_local_orders)}条）— 点击查看并手动处理"):
+        for lo in _local_orders:
+            st.json(lo)
+        st.caption("处理方式：复制上方 JSON 数据，或联系技术人员手动写入 Supabase")
+
+if not orders and not _local_orders:
     st.info("暂无订单，等待客户填表提交")
+    st.stop()
+elif not orders:
     st.stop()
 
 # ── 状态筛选 ──────────────────────────────────────────

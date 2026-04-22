@@ -3,9 +3,13 @@
 优先使用 Supabase，失败时降级到本地 JSON（保证不中断）
 """
 import json
+import time
+import logging
 import streamlit as st
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 _TZ_BEIJING = timezone(timedelta(hours=8))
 
@@ -46,19 +50,31 @@ def _local_save(orders):
 # ── 公共接口 ──────────────────────────────────────────
 
 def insert_order(order: dict) -> bool:
-    """新增订单，成功返回 True"""
+    """新增订单。Supabase 失败时最多重试3次，全部失败则抛异常（不静默丢数据）"""
     sb = _client()
+    last_err = None
     if sb:
-        try:
-            sb.table("orders").insert(order).execute()
-            return True
-        except Exception as e:
-            st.warning(f"云端保存失败，已存本地备份：{e}")
-    # 降级到本地
-    orders = _local_load()
-    orders.append(order)
-    _local_save(orders)
-    return False  # 标识用了本地
+        for attempt in range(3):
+            try:
+                sb.table("orders").insert(order).execute()
+                return True
+            except Exception as e:
+                last_err = e
+                logger.warning(f"insert_order attempt {attempt+1} failed: {e}")
+                if attempt < 2:
+                    time.sleep(1.5)
+    # 本地备份（仅作应急记录，Streamlit Cloud 重启后会丢失）
+    try:
+        orders = _local_load()
+        orders.append(order)
+        _local_save(orders)
+        logger.error(f"insert_order saved to local fallback, Supabase error: {last_err}")
+    except Exception:
+        pass
+    # 向上抛出，让调用方决定如何提示用户
+    raise RuntimeError(
+        f"订单提交失败（已本地备份，但服务器重启后可能丢失）。错误：{last_err}"
+    )
 
 def load_orders() -> list:
     """读取所有订单，按提交时间降序"""

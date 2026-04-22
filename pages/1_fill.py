@@ -47,11 +47,20 @@ if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
                 st.session_state.pop(k, None)
         st.session_state["form_submitted"] = True
         st.session_state["submitted_name"] = order["name"]
+        st.rerun()
     except Exception as e:
         st.session_state.pop("_submitting", None)
-        st.error(f"提交失败，请截图联系工作人员：{e}")
+        st.markdown(
+            "<div style='text-align:center;padding:40px 20px'>"
+            "<div style='font-size:48px'>⚠️</div>"
+            "<h3 style='color:#cc3300'>提交遇到问题</h3>"
+            "<p style='color:#555'>网络繁忙，请稍等 30 秒后<b>重新点击提交按钮</b>再试一次</p>"
+            "<p style='color:#999;font-size:13px'>如多次失败，请截图发给工作人员</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        st.error(f"技术信息（截图备用）：{e}")
         st.stop()
-    st.rerun()
     st.stop()
 
 # ── 提交成功页 ────────────────────────────────────────
