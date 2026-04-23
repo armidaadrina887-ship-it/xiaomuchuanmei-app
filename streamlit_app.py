@@ -1,5 +1,5 @@
 """
-晓牧传媒 · AI文案生成系统
+晓牧传媒 · 文案生成系统
 """
 import streamlit as st
 import os
@@ -15,7 +15,7 @@ _COOKIE_NAME = "xm_auth_v1"
 
 # ── 页面配置 ──────────────────────────────────────
 st.set_page_config(
-    page_title="晓牧传媒 · AI文案生成",
+    page_title="晓牧传媒 · 文案生成",
     page_icon="🎬",
     layout="centered",
 )
@@ -98,7 +98,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 """, unsafe_allow_html=True)
     st.markdown(
         "<h2 style='text-align:center;margin-top:60px'>🎬 晓牧传媒</h2>"
-        "<p style='text-align:center;color:#888;margin-bottom:32px'>AI文案生成系统 · 内部专用</p>",
+        "<p style='text-align:center;color:#888;margin-bottom:32px'>文案生成系统 · 内部专用</p>",
         unsafe_allow_html=True,
     )
     with st.form("login_form"):
@@ -140,7 +140,7 @@ with st.sidebar:
 
 # ── 顶部标题 ──────────────────────────────────────
 col_title, col_ver = st.columns([5, 1])
-col_title.title("🎬 晓牧传媒 · AI文案生成系统")
+col_title.title("🎬 晓牧传媒 · 文案生成系统")
 col_ver.markdown(
     f"<br><span style='background:#E65000;color:white;padding:3px 10px;"
     f"border-radius:12px;font-size:13px'>v{VERSION}</span>",

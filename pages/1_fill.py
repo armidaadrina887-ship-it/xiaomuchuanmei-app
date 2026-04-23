@@ -33,30 +33,19 @@ header[data-testid="stHeader"]   { display: none !important; }
 """, unsafe_allow_html=True)
 
 
-# ── 草稿恢复：从 localStorage 读取上次填写内容（只读一次）──
-if not st.session_state.get("_draft_loaded"):
-    _raw = streamlit_js_eval(
-        js_expressions=f"localStorage.getItem('{_DRAFT_KEY}')",
-        key="_ls_read_draft",
-    )
-    if _raw is not None:                      # 组件已响应（None = 首帧还没返回）
-        st.session_state["_draft_loaded"] = True
-        if _raw and _raw not in ("null", "undefined", ""):
-            try:
-                _saved = json.loads(_raw)
-                _cnt = 0
-                for k, v in _saved.items():
-                    if k.startswith("pf_") and v and not st.session_state.get(k):
-                        st.session_state[k] = v
-                        _cnt += 1
-                if _cnt:
-                    st.session_state["_draft_restored"] = True
-            except Exception:
-                pass
+# ── 提交锁（最优先）：提交期间不跑任何其他逻辑 ────────
+if st.session_state.get("_submitting"):
+    if "_pending_order" not in st.session_state:
+        # _pending_order 已被消费但 rerun 尚未完成，显示等待防止表单渲染
+        st.markdown(
+            "<div style='text-align:center;padding:60px 20px'>"
+            "<div style='font-size:48px'>⏳</div>"
+            "<h3>正在处理，请稍候…</h3>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        st.stop()
 
-# ── 提交锁：防止重复提交 ──────────────────────────────
-# 表单数据已存入 session_state，正在调用 Supabase 写入
-if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
     st.markdown(
         "<div style='text-align:center;padding:60px 20px'>"
         "<div style='font-size:48px'>⏳</div>"
@@ -65,15 +54,16 @@ if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
         "</div>",
         unsafe_allow_html=True,
     )
-    order = st.session_state.pop("_pending_order")
+    order = st.session_state["_pending_order"]   # 先不 pop，成功再清
     try:
         insert_order(order)
+        st.session_state.pop("_pending_order", None)
         for k in list(st.session_state.keys()):
-            if k.startswith("pf_") or k in ("step1_done", "missing_fields", "_submitting"):
+            if k.startswith("pf_") or k in ("step1_done", "missing_fields", "_submitting",
+                                             "_draft_loaded", "_draft_restored"):
                 st.session_state.pop(k, None)
         st.session_state["form_submitted"] = True
         st.session_state["submitted_name"] = order["name"]
-        # 提交成功，清除本地草稿
         components.html(
             f"<script>localStorage.removeItem('{_DRAFT_KEY}');</script>",
             height=0,
@@ -81,6 +71,7 @@ if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
         st.rerun()
     except Exception as e:
         st.session_state.pop("_submitting", None)
+        st.session_state.pop("_pending_order", None)
         st.markdown(
             "<div style='text-align:center;padding:40px 20px'>"
             "<div style='font-size:48px'>⚠️</div>"
@@ -93,6 +84,27 @@ if st.session_state.get("_submitting") and "_pending_order" in st.session_state:
         st.error(f"技术信息（截图备用）：{e}")
         st.stop()
     st.stop()
+
+# ── 草稿恢复：提交完成后才读 localStorage，避免干扰提交流程 ──
+if not st.session_state.get("_draft_loaded"):
+    _raw = streamlit_js_eval(
+        js_expressions=f"localStorage.getItem('{_DRAFT_KEY}')",
+        key="_ls_read_draft",
+    )
+    if _raw is not None:
+        st.session_state["_draft_loaded"] = True
+        if _raw and _raw not in ("null", "undefined", ""):
+            try:
+                _saved = json.loads(_raw)
+                _cnt = sum(
+                    1 for k, v in _saved.items()
+                    if k.startswith("pf_") and v and not st.session_state.get(k)
+                    and not st.session_state.setdefault(k, v) is None
+                )
+                if _cnt:
+                    st.session_state["_draft_restored"] = True
+            except Exception:
+                pass
 
 # ── 提交成功页 ────────────────────────────────────────
 if st.session_state.get("form_submitted"):
