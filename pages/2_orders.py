@@ -42,8 +42,8 @@ st.markdown("""
 with st.sidebar:
     st.markdown(
         "<div style='padding:16px 0 4px;font-family:monospace'>"
-        "<span style='color:rgba(255,45,120,0.5);font-size:11px'>// </span>"
-        "<span style='color:#FF2D78;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
+        "<span style='color:rgba(230,80,0,0.5);font-size:11px'>// </span>"
+        "<span style='color:#E65000;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
         "</div>"
         "<div style='color:#555;font-size:11px;padding-bottom:12px;font-family:monospace'>"
         "内容创作系统</div>",
@@ -144,7 +144,7 @@ def _start_gen(order: dict, api_key: str):
 col_t, col_v = st.columns([6, 1])
 col_t.markdown(
     "<h2 style='color:#F0F0F0;margin-bottom:0'>"
-    "<span style='color:rgba(255,45,120,0.5);font-family:monospace;font-size:20px'>// </span>"
+    "<span style='color:rgba(230,80,0,0.5);font-family:monospace;font-size:20px'>// </span>"
     "订单管理</h2>",
     unsafe_allow_html=True,
 )
@@ -187,10 +187,10 @@ filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=Tru
 pending_orders = [o for o in orders if o.get("status") == "待处理"]
 if pending_orders:
     st.markdown("""
-<div style='background:rgba(255,45,120,0.06);border:1px solid rgba(255,45,120,0.30);
-            border-left:3px solid #FF2D78;border-radius:6px;
+<div style='background:rgba(230,80,0,0.06);border:1px solid rgba(230,80,0,0.30);
+            border-left:3px solid #E65000;border-radius:6px;
             padding:12px 16px;margin-bottom:8px'>
-<span style='color:#FF2D78;font-family:monospace;font-weight:700'>// 批量生成</span>
+<span style='color:#E65000;font-family:monospace;font-weight:700'>// 批量生成</span>
 <span style='color:#888;font-size:13px;margin-left:8px'>
 勾选待处理订单 → 批量生成（多个订单同时在后台运行，页面不冻结）
 </span>
@@ -200,12 +200,12 @@ if pending_orders:
     for o in pending_orders:
         gen = _get_gen(o["id"])
         is_running = gen.get("status") == "running"
-        label = (f"⏳ {int(gen.get('progress',0)*100)}%  · " if is_running else "") + \
+        label = (f"[{int(gen.get('progress',0)*100)}%]  · " if is_running else "") + \
                 f"【{o.get('group_name','—')}】**{o.get('name','—')}** · {o.get('shop','—')} · {o.get('submitted_at','')}"
         if st.checkbox(label, key=f"batch_chk_{o['id']}", disabled=is_running):
             selected_ids.append(o["id"])
 
-    btn_label = f"🚀 批量生成选中订单（{len(selected_ids)}个）" if selected_ids else "请先勾选订单"
+    btn_label = f"批量生成选中订单（{len(selected_ids)}个）" if selected_ids else "请先勾选订单"
     if st.button(btn_label, type="primary", disabled=not selected_ids, use_container_width=True):
         for oid in selected_ids:
             order = next((o for o in pending_orders if o["id"] == oid), None)
@@ -246,17 +246,17 @@ for order in filtered:
         any_running = True
 
     if is_running:
-        badge = f"⏳ 生成中 {int(gen.get('progress', 0)*100)}%"
+        badge = f"[生成中 {int(gen.get('progress', 0)*100)}%]"
     elif is_error:
-        badge = "❌ 生成出错"
+        badge = "[出错]"
     elif has_result:
-        badge = "🟢 待下载"
+        badge = "[待下载]"
     elif is_editing:
-        badge = "✏️ 编辑中"
+        badge = "[编辑中]"
     elif db_status == "已生成":
-        badge = "✅ 已生成"
+        badge = "[已生成]"
     else:
-        badge = "🟡 待处理"
+        badge = "[待处理]"
 
     group_name   = order.get("group_name", "未知群")
     name         = order.get("name", "未知")
@@ -270,13 +270,13 @@ for order in filtered:
         # ── 生成中 ────────────────────────────────────
         if is_running:
             st.progress(gen.get("progress", 0.0))
-            st.info(f"⏳ {gen.get('msg', '')}")
+            st.info(gen.get('msg', ''))
             st.caption("生成期间可继续操作其他订单")
 
         # ── 出错 ──────────────────────────────────────
         elif is_error:
             st.error(f"生成失败：{gen.get('error', '未知错误')}")
-            if st.button("🔄 重试", key=f"retry_{oid}", type="primary"):
+            if st.button("重试", key=f"retry_{oid}", type="primary"):
                 _start_gen(order, api_key)
                 st.rerun()
 
@@ -285,8 +285,8 @@ for order in filtered:
             result = st.session_state[f"_result_{oid}"]
             score  = result.get('score', {})
             total  = score.get('total', 0)
-            score_tag = f"  |  🏆 {total}分" if total >= 90 else (f"  |  ⚠️ {total}分" if total >= 80 else (f"  |  ❌ {total}分" if total else ""))
-            st.success(f"✅ 文案已生成完毕，共 {result['count']} 条{score_tag}")
+            score_tag = f"  |  {total}分" if total else ""
+            st.success(f"文案已生成完毕，共 {result['count']} 条{score_tag}")
             if score:
                 bd = score.get('breakdown', {})
                 c1, c2, c3, c4, c5 = st.columns(5)
@@ -301,7 +301,7 @@ for order in filtered:
                 if score.get('issues'):
                     st.caption("失分项：" + "；".join(score['issues']))
             dl = st.download_button(
-                label=f"⬇️ 下载 Word 文档（{result['count']}条）",
+                label=f"下载 Word 文档（{result['count']}条）",
                 data=result["bytes"],
                 file_name=result["filename"],
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -312,7 +312,7 @@ for order in filtered:
             if dl:
                 st.session_state.pop(f"_result_{oid}", None)
                 st.rerun()
-            if st.button("🔄 重新生成", key=f"regen_{oid}"):
+            if st.button("重新生成", key=f"regen_{oid}"):
                 st.session_state.pop(f"_result_{oid}", None)
                 _start_gen(order, api_key)
                 st.rerun()
@@ -406,18 +406,18 @@ for order in filtered:
             btn1, btn2, btn3, btn4 = st.columns([2, 2, 1, 1])
 
             with btn1:
-                if st.button("🚀 立即生成文案", key=f"gen_{oid}", type="primary"):
+                if st.button("立即生成文案", key=f"gen_{oid}", type="primary"):
                     _start_gen(order, api_key)
                     st.rerun()
 
             with btn2:
-                if st.button("✏️ 编辑资料", key=f"edit_{oid}"):
+                if st.button("编辑资料", key=f"edit_{oid}"):
                     st.session_state[f"_editing_{oid}"] = True
                     st.rerun()
 
             with btn3:
                 if db_status == "待处理":
-                    if st.button("✅ 已生成", key=f"done_{oid}"):
+                    if st.button("标记已生成", key=f"done_{oid}"):
                         update_order(oid, {
                             "status":       "已生成",
                             "processed_by": st.session_state.get("username", ""),
@@ -438,7 +438,7 @@ for order in filtered:
                         st.session_state.pop(ckey, None)
                         st.rerun()
                 else:
-                    if st.button("🗑️", key=f"del_{oid}"):
+                    if st.button("删除", key=f"del_{oid}"):
                         st.session_state[ckey] = True
                         st.rerun()
 

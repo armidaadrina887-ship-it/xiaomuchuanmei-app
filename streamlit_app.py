@@ -72,7 +72,7 @@ def login_page():
     st.markdown(LOGIN_EXTRA_CSS, unsafe_allow_html=True)
     st.markdown(
         "<div style='text-align:center;margin-top:80px'>"
-        f"<div style='font-size:13px;color:#FF2D78;font-family:monospace;"
+        f"<div style='font-size:13px;color:#E65000;font-family:monospace;"
         f"letter-spacing:3px;margin-bottom:12px'>// XIAOMUCHUANMEI</div>"
         f"<h2 style='color:#F0F0F0;margin-bottom:4px'>晓牧传媒</h2>"
         f"<p style='color:#555;font-size:14px;margin-bottom:40px'>文案生成系统 · 内部专用</p>"
@@ -101,8 +101,8 @@ st.markdown("""
 with st.sidebar:
     st.markdown(
         "<div style='padding:16px 0 4px;font-family:monospace'>"
-        "<span style='color:rgba(255,45,120,0.5);font-size:11px'>// </span>"
-        "<span style='color:#FF2D78;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
+        "<span style='color:rgba(230,80,0,0.5);font-size:11px'>// </span>"
+        "<span style='color:#E65000;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
         "</div>"
         "<div style='color:#555;font-size:11px;padding-bottom:12px;font-family:monospace'>"
         "内容创作系统</div>",
@@ -123,7 +123,7 @@ with st.sidebar:
 col_title, col_ver = st.columns([5, 1])
 col_title.markdown(
     "<h2 style='color:#F0F0F0;margin-bottom:0'>"
-    "<span style='color:rgba(255,45,120,0.5);font-family:monospace;font-size:20px'>// </span>"
+    "<span style='color:rgba(230,80,0,0.5);font-family:monospace;font-size:20px'>// </span>"
     "晓牧传媒 · 文案生成系统</h2>",
     unsafe_allow_html=True,
 )
@@ -213,7 +213,7 @@ if generate_btn:
         st.stop()
 
     progress_bar.progress(1.0)
-    status_text.success(f"✅ 生成完成！共 {len(scripts)} 条脚本")
+    status_text.success(f"生成完成！共 {len(scripts)} 条脚本")
     st.session_state.pop("_from_order", None)
 
     # ── 质量评分展示 ─────────────────────────────────
@@ -221,11 +221,11 @@ if generate_btn:
     if score:
         total = score.get('total', 0)
         if total >= 90:
-            st.success(f"🏆 质量评分 **{total} 分** — 达标（≥90分）")
+            st.success(f"质量评分 **{total} 分** — 达标（≥90分）")
         elif total >= 80:
-            st.warning(f"📊 质量评分 **{total} 分** — 良好，可考虑重新生成")
+            st.warning(f"质量评分 **{total} 分** — 良好，可考虑重新生成")
         else:
-            st.error(f"📊 质量评分 **{total} 分** — 偏低，建议重新生成")
+            st.error(f"质量评分 **{total} 分** — 偏低，建议重新生成")
         bd = score.get('breakdown', {})
         cols = st.columns(5)
         for col, (k, v) in zip(cols, [
@@ -242,32 +242,32 @@ if generate_btn:
 
     failed_batches = client.get('failed_batches', [])
     if failed_batches:
-        st.warning(f"⚠️ 以下批次解析失败，实际生成 {len(scripts)} 条（非30条）：第{'、'.join(failed_batches)}条批次，建议重新生成")
+        st.warning(f"以下批次解析失败，实际生成 {len(scripts)} 条（非30条）：第{'、'.join(failed_batches)}条批次，建议重新生成")
 
     violations = client.get('violations', [])
     if violations:
         vlist = "、".join(f"第{v['script']}条[{v['word']}]" for v in violations[:8])
-        st.warning(f"⚠️ 违禁词（已重写后仍存在）：{vlist}，建议人工复查")
+        st.warning(f"违禁词（已重写后仍存在）：{vlist}，建议人工复查")
 
     opening_remaining = client.get('opening_violations_remaining', [])
     if opening_remaining:
-        st.warning(f"⚠️ 以下条目开场仍有套话，请人工替换：第{'、'.join(str(n) for n in opening_remaining)}条")
+        st.warning(f"以下条目开场仍有套话，请人工替换：第{'、'.join(str(n) for n in opening_remaining)}条")
 
     scene_violations = client.get('scene_violations', [])
     if scene_violations:
         sv_list = "、".join(f"第{v['script']}条镜头{v['shot']}[{v['keyword']}]" for v in scene_violations[:6])
-        st.warning(f"⚠️ 场景描述出现禁止人物词：{sv_list}，需人工修改场景描述")
+        st.warning(f"场景描述出现禁止人物词：{sv_list}，需人工修改场景描述")
 
     zui_replacements = client.get('zui_replacements', [])
     if zui_replacements:
         zui_count = len([r for r in zui_replacements if r.get('type') == 'zui'])
         if zui_count:
-            st.info(f"🔄 程序已自动替换「最」字 {zui_count} 处（涉及{len(set(r['script'] for r in zui_replacements if r.get('type') == 'zui'))}条脚本）")
+            st.info(f"程序已自动替换「最」字 {zui_count} 处（涉及{len(set(r['script'] for r in zui_replacements if r.get('type') == 'zui'))}条脚本）")
 
     dedup_flags = [r for r in zui_replacements if r.get('field') == 'dedup_flag']
     if dedup_flags:
         dup_list = "、".join(f"第{r['script']}条（{r['type']}）" for r in dedup_flags[:6])
-        st.warning(f"⚠️ 检测到疑似重复脚本：{dup_list}，建议人工检查替换")
+        st.warning(f"检测到疑似重复脚本：{dup_list}，建议人工检查替换")
 
     try:
         word_bytes = make_word_bytes(client, scripts)
@@ -278,7 +278,7 @@ if generate_btn:
     filename = f"{client['name']}_{client['company'][:8]}_30条文案.docx"
 
     downloaded = st.download_button(
-        label=f"⬇️ 下载 Word 文档（{len(scripts)}条）",
+        label=f"下载 Word 文档（{len(scripts)}条）",
         data=word_bytes,
         file_name=filename,
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -12,7 +12,7 @@ from streamlit_js_eval import streamlit_js_eval
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, get_field
 from db import insert_order, now_beijing
-from styles import DARK_CSS, ACCENT
+from styles import DARK_CSS, ACCENT, HIDE_SIDEBAR_CSS
 
 _DRAFT_KEY = "xm_fill_draft_v1"
 
@@ -23,12 +23,9 @@ st.set_page_config(
 )
 
 # 客户填表页：暗黑主题 + 隐藏侧边栏
-st.markdown(DARK_CSS + """
+st.markdown(DARK_CSS + HIDE_SIDEBAR_CSS + """
 <style>
-[data-testid="collapsedControl"] { display: none !important; }
-section[data-testid="stSidebar"] { display: none !important; }
-#MainMenu                        { display: none !important; }
-header[data-testid="stHeader"]   { display: none !important; }
+header[data-testid="stHeader"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -123,7 +120,7 @@ if st.session_state.get("form_submitted"):
 # ── 页面标题 ──────────────────────────────────────────
 st.markdown(
     "<div style='text-align:center;padding:24px 0 8px'>"
-    "<div style='font-size:11px;color:#FF2D78;font-family:monospace;"
+    "<div style='font-size:11px;color:#E65000;font-family:monospace;"
     "letter-spacing:3px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
     "<h2 style='color:#F0F0F0;margin-bottom:4px'>客户资料填写</h2>"
     "<p style='color:#555;font-size:13px'>晓牧传媒 · 专业短视频文案定制</p>"
