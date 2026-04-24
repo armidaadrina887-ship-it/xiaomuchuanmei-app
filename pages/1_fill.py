@@ -36,7 +36,7 @@ if st.session_state.get("_submitting"):
         # _pending_order 已被消费但 rerun 尚未完成，显示等待防止表单渲染
         st.markdown(
             "<div style='text-align:center;padding:60px 20px'>"
-            "<div style='font-size:48px'>⏳</div>"
+            "<div style='font-size:28px;color:#E65000;font-family:monospace;font-weight:700'>// 处理中</div>"
             "<h3>正在处理，请稍候…</h3>"
             "</div>",
             unsafe_allow_html=True,
@@ -45,7 +45,7 @@ if st.session_state.get("_submitting"):
 
     st.markdown(
         "<div style='text-align:center;padding:60px 20px'>"
-        "<div style='font-size:48px'>⏳</div>"
+        "<div style='font-size:28px;color:#E65000;font-family:monospace;font-weight:700'>// 提交中</div>"
         "<h3>正在提交，请稍候…</h3>"
         "<p style='color:#888'>请勿关闭页面或重复点击</p>"
         "</div>",
@@ -71,7 +71,7 @@ if st.session_state.get("_submitting"):
         st.session_state.pop("_pending_order", None)
         st.markdown(
             "<div style='text-align:center;padding:40px 20px'>"
-            "<div style='font-size:48px'>⚠️</div>"
+            "<div style='font-size:28px;color:#cc3300;font-family:monospace;font-weight:700'>// 错误</div>"
             "<h3 style='color:#cc3300'>提交遇到问题</h3>"
             "<p style='color:#555'>网络繁忙，请稍等 30 秒后<b>重新点击提交按钮</b>再试一次</p>"
             "<p style='color:#999;font-size:13px'>如多次失败，请截图发给工作人员</p>"
@@ -108,7 +108,7 @@ if st.session_state.get("form_submitted"):
     submitted_name = st.session_state.get("submitted_name", "您")
     st.markdown(
         f"<div style='text-align:center;padding:60px 20px'>"
-        f"<div style='font-size:64px'>✅</div>"
+        f"<div style='font-size:48px;color:#E65000;font-family:monospace;font-weight:700'>// OK</div>"
         f"<h2>{submitted_name} 的资料已提交成功！</h2>"
         f"<p style='color:#666;font-size:16px'>我们的文案老师会在 1-2 个工作日内完成制作<br>"
         f"完成后通过微信发送给您，请注意查收</p>"
@@ -132,7 +132,7 @@ st.divider()
 # ── 草稿恢复提示横幅 ──────────────────────────────────
 if st.session_state.get("_draft_restored"):
     col_info, col_btn = st.columns([5, 1])
-    col_info.info("📂 已自动恢复上次填写的内容，继续完成后提交即可")
+    col_info.info("已自动恢复上次填写的内容，继续完成后提交即可")
     if col_btn.button("重新填", help="清除暂存内容，从头开始"):
         for k in list(st.session_state.keys()):
             if k.startswith("pf_") or k == "_draft_restored":
@@ -171,7 +171,7 @@ if not st.session_state.get("step1_done"):
     st.stop()
 
 # ── 一键解析区（放在表单外，解析后写入 session_state）───
-with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False):
+with st.expander("已有资料？一键粘贴自动填写", expanded=False):
     st.caption("把之前填写的客户信息表（任意格式）粘贴进来，系统自动识别并填入下方表单")
     quick_raw = st.text_area(
         "粘贴客户资料",
@@ -185,7 +185,7 @@ with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False)
 产品特点：全实木框架，榫卯工艺
 ...""",
     )
-    if st.button("🔍 解析并自动填写 →", type="primary", use_container_width=True):
+    if st.button("解析并自动填写 →", type="primary", use_container_width=True):
         if not quick_raw.strip():
             st.error("请粘贴客户资料")
         else:
@@ -212,13 +212,13 @@ with st.expander("📋 已有资料？一键粘贴自动填写", expanded=False)
             parsed_count = sum(1 for k in [
                 'pf_name','pf_shop','pf_city','pf_biz','pf_product'
             ] if st.session_state.get(k))
-            st.success(f"✅ 已解析 {parsed_count}/5 个核心字段，请检查下方表单后提交")
+            st.success(f"已解析 {parsed_count}/5 个核心字段，请检查下方表单后提交")
             st.rerun()
 
 st.divider()
 st.info(
-    "💡 **填写建议**：内容较多，手机用户可使用语音输入\n\n"
-    "iOS：长按键盘左下角 🎤  |  Android：长按键盘麦克风键"
+    "**填写建议**：内容较多，手机用户可使用语音输入\n\n"
+    "iOS：长按键盘左下角麦克风键  |  Android：长按键盘麦克风键"
 )
 
 # ── 辅助：读取预填值 ──────────────────────────────────
@@ -229,7 +229,7 @@ def _v(key, default=""):
 _ERR_HTML = (
     "<div style='background:#fff0f0;border-left:3px solid #ff4444;"
     "padding:4px 10px;margin:-6px 0 10px;border-radius:0 4px 4px 0;"
-    "font-size:13px;color:#cc0000'>⚠️ 此项必填，请填写后再提交</div>"
+    "font-size:13px;color:#cc0000'>此项必填，请填写后再提交</div>"
 )
 _missing_set: set = set(st.session_state.get("missing_fields", []))
 
@@ -287,7 +287,7 @@ with st.form("client_form"):
 
     st.divider()
     st.markdown("### 第三部分：你的故事")
-    st.warning("🎤 **这部分最适合语音输入** — 说大白话就行，越真实越好")
+    st.info("**这部分最适合语音输入** — 说大白话就行，越真实越好")
 
     story = st.text_area("创业经历 / 入行故事 *", value=_v("pf_story"), height=120,
                          placeholder="怎么入行的？当时为什么做这个？有什么转折点？")
@@ -309,7 +309,7 @@ with st.form("client_form"):
     extra = st.text_area("其他补充", value=_v("pf_extra"), height=80)
 
     st.divider()
-    submitted = st.form_submit_button("✅ 提交资料", use_container_width=True, type="primary")
+    submitted = st.form_submit_button("提交资料", use_container_width=True, type="primary")
 
 # ── 提交处理 ──────────────────────────────────────────
 if submitted:
@@ -336,7 +336,7 @@ if submitted:
 
     if missing:
         st.session_state["missing_fields"] = missing
-        st.error(f"⚠️ 还有 {len(missing)} 项未填写，已在下方标红提示，请补充后再提交")
+        st.error(f"还有 {len(missing)} 项未填写，已在下方标红提示，请补充后再提交")
     else:
         # 保存订单数据，设提交锁，立即 rerun 显示 loading 页
         st.session_state["_pending_order"] = {

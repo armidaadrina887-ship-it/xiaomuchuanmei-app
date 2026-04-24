@@ -58,8 +58,6 @@ header[data-testid="stHeader"] {
   border-color: var(--border) !important;
   opacity: 1 !important;
 }
-/* 原生英文导航隐藏；侧边栏折叠按钮保留（手机可用） */
-[data-testid="stSidebarNav"] { display: none !important; }
 
 /* ─── 文字 ──────────────────────────────────────────── */
 p, span, div, label, caption, li,
