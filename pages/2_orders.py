@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, build_client, generate_scripts, make_word_bytes, INDUSTRY_NAMES
 from db import load_orders, update_order, delete_order, now_beijing, _local_load
 from version import VERSION
-from styles import DARK_CSS, ACCENT, accent_badge, section_title
+from styles import DARK_CSS, ACCENT, accent_badge, section_title, SIDEBAR_NAV_HTML, SIDEBAR_BRAND_HTML
 
 _COOKIE_NAME = "xm_auth_v1"
 _cookies = stx.CookieManager(key="xm_cookie_orders")
@@ -40,20 +40,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown(
-        "<div style='padding:16px 0 4px;font-family:monospace'>"
-        "<span style='color:rgba(230,80,0,0.5);font-size:11px'>// </span>"
-        "<span style='color:#E65000;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
-        "</div>"
-        "<div style='color:#555;font-size:11px;padding-bottom:12px;font-family:monospace'>"
-        "内容创作系统</div>",
-        unsafe_allow_html=True,
-    )
-    st.page_link("streamlit_app.py",  label="✍️  生成文案")
-    st.page_link("pages/2_orders.py", label="📋  订单管理")
+    st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
+    st.markdown(SIDEBAR_NAV_HTML, unsafe_allow_html=True)
     st.divider()
     st.markdown(
-        f"<span style='font-size:12px;color:#999'>👤 {st.session_state.get('username','')}</span>",
+        f"<span style='font-size:11px;color:#555;font-family:monospace'>"
+        f"{st.session_state.get('username','')}</span>",
         unsafe_allow_html=True,
     )
     if st.button("退出登录", use_container_width=True):
@@ -144,7 +136,7 @@ def _start_gen(order: dict, api_key: str):
 col_t, col_v = st.columns([6, 1])
 col_t.markdown(
     "<h2 style='color:#F0F0F0;margin-bottom:0'>"
-    "<span style='color:rgba(230,80,0,0.5);font-family:monospace;font-size:20px'>// </span>"
+    "<span style='color:rgba(255,117,51,0.5);font-family:monospace;font-size:20px'>// </span>"
     "订单管理</h2>",
     unsafe_allow_html=True,
 )
@@ -187,10 +179,10 @@ filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=Tru
 pending_orders = [o for o in orders if o.get("status") == "待处理"]
 if pending_orders:
     st.markdown("""
-<div style='background:rgba(230,80,0,0.06);border:1px solid rgba(230,80,0,0.30);
-            border-left:3px solid #E65000;border-radius:6px;
+<div style='background:rgba(255,117,51,0.06);border:1px solid rgba(255,117,51,0.25);
+            border-left:3px solid #FF7533;border-radius:6px;
             padding:12px 16px;margin-bottom:8px'>
-<span style='color:#E65000;font-family:monospace;font-weight:700'>// 批量生成</span>
+<span style='color:#FF7533;font-family:monospace;font-weight:700'>// 批量生成</span>
 <span style='color:#888;font-size:13px;margin-left:8px'>
 勾选待处理订单 → 批量生成（多个订单同时在后台运行，页面不冻结）
 </span>

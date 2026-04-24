@@ -17,7 +17,7 @@ from core import (
 )
 from db import update_order, now_beijing
 from version import VERSION
-from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title
+from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title, SIDEBAR_NAV_HTML, SIDEBAR_BRAND_HTML
 
 _COOKIE_NAME = "xm_auth_v1"
 
@@ -72,7 +72,7 @@ def login_page():
     st.markdown(LOGIN_EXTRA_CSS, unsafe_allow_html=True)
     st.markdown(
         "<div style='text-align:center;margin-top:80px'>"
-        f"<div style='font-size:13px;color:#E65000;font-family:monospace;"
+        f"<div style='font-size:13px;color:#FF7533;font-family:monospace;"
         f"letter-spacing:3px;margin-bottom:12px'>// XIAOMUCHUANMEI</div>"
         f"<h2 style='color:#F0F0F0;margin-bottom:4px'>晓牧传媒</h2>"
         f"<p style='color:#555;font-size:14px;margin-bottom:40px'>文案生成系统 · 内部专用</p>"
@@ -99,21 +99,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown(
-        "<div style='padding:16px 0 4px;font-family:monospace'>"
-        "<span style='color:rgba(230,80,0,0.5);font-size:11px'>// </span>"
-        "<span style='color:#E65000;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
-        "</div>"
-        "<div style='color:#555;font-size:11px;padding-bottom:12px;font-family:monospace'>"
-        "内容创作系统</div>",
-        unsafe_allow_html=True,
-    )
-    st.page_link("streamlit_app.py",  label="✍️  生成文案")
-    st.page_link("pages/2_orders.py", label="📋  订单管理")
+    st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
+    st.markdown(SIDEBAR_NAV_HTML, unsafe_allow_html=True)
     st.divider()
     st.markdown(
-        f"<span style='font-size:11px;color:#444;font-family:monospace'>"
-        f"👤 {st.session_state['username']}</span>",
+        f"<span style='font-size:11px;color:#555;font-family:monospace'>"
+        f"{st.session_state['username']}</span>",
         unsafe_allow_html=True,
     )
     if st.button("退出登录", use_container_width=True):
@@ -123,7 +114,7 @@ with st.sidebar:
 col_title, col_ver = st.columns([5, 1])
 col_title.markdown(
     "<h2 style='color:#F0F0F0;margin-bottom:0'>"
-    "<span style='color:rgba(230,80,0,0.5);font-family:monospace;font-size:20px'>// </span>"
+    "<span style='color:rgba(255,117,51,0.5);font-family:monospace;font-size:20px'>// </span>"
     "晓牧传媒 · 文案生成系统</h2>",
     unsafe_allow_html=True,
 )

@@ -2,9 +2,9 @@
 晓牧传媒 · 全局 UI 主题（暗黑 + 橙色）
 """
 
-ACCENT      = "#E65000"
-ACCENT_GLOW = "rgba(230,80,0,0.35)"
-ACCENT_DIM  = "rgba(230,80,0,0.12)"
+ACCENT      = "#FF7533"
+ACCENT_GLOW = "rgba(255,117,51,0.35)"
+ACCENT_DIM  = "rgba(255,117,51,0.12)"
 BG          = "#0D0D0D"
 BG_CARD     = "#161616"
 BG_INPUT    = "#1C1C1C"
@@ -13,14 +13,14 @@ DARK_CSS = """
 <style>
 /* ─── 全局变量 ─────────────────────────────────────── */
 :root {
-  --accent:      #E65000;
-  --accent-glow: rgba(230,80,0,0.35);
-  --accent-dim:  rgba(230,80,0,0.12);
+  --accent:      #FF7533;
+  --accent-glow: rgba(255,117,51,0.35);
+  --accent-dim:  rgba(255,117,51,0.12);
   --bg:          #0D0D0D;
   --bg-card:     #161616;
   --bg-input:    #1C1C1C;
-  --border:      rgba(230,80,0,0.22);
-  --border-hi:   rgba(230,80,0,0.55);
+  --border:      rgba(255,117,51,0.20);
+  --border-hi:   rgba(255,117,51,0.50);
   --txt:         #E8E8E8;
   --txt-muted:   #666;
 }
@@ -34,7 +34,7 @@ section.main,
   background-color: var(--bg) !important;
 }
 
-/* ─── 顶部装饰条（白横条）彻底隐藏 ─────────────────── */
+/* ─── 顶部装饰条彻底隐藏 ────────────────────────────── */
 [data-testid="stDecoration"],
 [data-testid="stToolbar"],
 .stDeployButton { display: none !important; }
@@ -46,7 +46,7 @@ header[data-testid="stHeader"] {
 
 /* ─── 侧边栏 ────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-  background-color: #070707 !important;
+  background-color: #080808 !important;
   border-right: 1px solid var(--border) !important;
 }
 [data-testid="stSidebar"] .stMarkdown,
@@ -57,6 +57,23 @@ header[data-testid="stHeader"] {
 [data-testid="stSidebar"] hr {
   border-color: var(--border) !important;
   opacity: 1 !important;
+}
+
+/* ─── 侧边栏导航链接 ─────────────────────────────────── */
+.xm-nav { padding: 4px 0; }
+.xm-nav a {
+  display: block;
+  padding: 7px 10px;
+  margin: 2px 0;
+  color: var(--txt) !important;
+  text-decoration: none !important;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: background .15s, color .15s;
+}
+.xm-nav a:hover {
+  background: var(--accent-dim) !important;
+  color: var(--accent) !important;
 }
 
 /* ─── 文字 ──────────────────────────────────────────── */
@@ -115,11 +132,11 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--txt) !important;
   border: 1px solid var(--border) !important;
   border-radius: 6px !important;
-  transition: border-color .15s, box-shadow .15s;
+  transition: border-color .15s, box-shadow .15s, color .15s;
 }
 .stButton > button:hover {
   border-color: var(--border-hi) !important;
-  box-shadow: 0 0 10px var(--accent-glow) !important;
+  box-shadow: 0 0 8px var(--accent-glow) !important;
   color: #fff !important;
 }
 button[kind="primary"],
@@ -129,32 +146,32 @@ button[kind="primary"],
   background-color: var(--accent) !important;
   border-color: var(--accent) !important;
   color: #fff !important;
-  box-shadow: 0 0 14px var(--accent-glow) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
 }
 button[kind="primary"]:hover,
 .stButton > button[kind="primary"]:hover {
-  background-color: #CC4800 !important;
-  box-shadow: 0 0 22px var(--accent-glow) !important;
+  background-color: #E65F1A !important;
+  box-shadow: 0 0 20px var(--accent-glow) !important;
 }
 .stDownloadButton > button {
   background-color: var(--accent) !important;
   border-color: var(--accent) !important;
   color: #fff !important;
-  box-shadow: 0 0 14px var(--accent-glow) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
   border-radius: 6px !important;
 }
 .stDownloadButton > button:hover {
-  background-color: #CC4800 !important;
-  box-shadow: 0 0 22px var(--accent-glow) !important;
+  background-color: #E65F1A !important;
+  box-shadow: 0 0 20px var(--accent-glow) !important;
 }
 
 /* ─── 进度条 ─────────────────────────────────────────── */
 .stProgress > div > div > div {
-  background: linear-gradient(90deg, var(--accent), #FF8C00) !important;
+  background: linear-gradient(90deg, var(--accent), #FFAA33) !important;
   border-radius: 4px !important;
 }
 .stProgress > div > div {
-  background-color: #222 !important;
+  background-color: #1E1E1E !important;
   border-radius: 4px !important;
 }
 
@@ -219,8 +236,8 @@ button[kind="primary"]:hover,
   border-left-color: var(--accent) !important;
 }
 [data-testid="stAlert"][data-baseweb="notification"][kind="info"] {
-  background-color: rgba(80,80,255,0.08) !important;
-  border-left-color: #6464FF !important;
+  background-color: rgba(80,120,255,0.08) !important;
+  border-left-color: #7090FF !important;
 }
 
 /* ─── 表单容器 ───────────────────────────────────────── */
@@ -241,14 +258,14 @@ hr { border-color: var(--border) !important; opacity: 1 !important; }
 /* ─── Scrollbar ──────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; background: var(--bg); }
 ::-webkit-scrollbar-thumb {
-  background: rgba(230,80,0,0.25);
+  background: rgba(255,117,51,0.22);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* ─── Links ──────────────────────────────────────────── */
 a { color: var(--accent) !important; }
-a:hover { color: #FF8C00 !important; text-decoration: none !important; }
+a:hover { color: #FFB07A !important; text-decoration: none !important; }
 
 /* ─── 表格 ───────────────────────────────────────────── */
 .stDataFrame, [data-testid="stTable"] {
@@ -275,19 +292,35 @@ LOGIN_EXTRA_CSS = HIDE_SIDEBAR_CSS + """
 </style>
 """
 
+# 侧边栏导航 HTML（用普通 <a> 代替 st.page_link，确保在所有版本下可见）
+SIDEBAR_NAV_HTML = """
+<div class='xm-nav'>
+  <a href='/' target='_self'>✍️&nbsp;&nbsp;生成文案</a>
+  <a href='/orders' target='_self'>📋&nbsp;&nbsp;订单管理</a>
+</div>
+"""
+
+# 侧边栏品牌头部 HTML
+SIDEBAR_BRAND_HTML = (
+    "<div style='padding:16px 0 4px;font-family:monospace'>"
+    "<span style='color:rgba(255,117,51,0.5);font-size:11px'>// </span>"
+    "<span style='color:#FF7533;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
+    "</div>"
+    "<div style='color:#555;font-size:11px;padding-bottom:8px;font-family:monospace'>"
+    "内容创作系统</div>"
+)
+
 
 def accent_badge(text: str) -> str:
-    """生成橙色徽章 HTML"""
     return (
-        f"<span style='background:#E65000;color:#fff;"
+        f"<span style='background:#FF7533;color:#fff;"
         f"padding:2px 10px;border-radius:12px;font-size:13px'>{text}</span>"
     )
 
 
 def section_title(text: str, prefix: bool = True) -> str:
-    """生成带 // 前缀的 section 标题 HTML"""
-    pre = "<span style='color:rgba(230,80,0,0.5);font-family:monospace'>// </span>" if prefix else ""
+    pre = "<span style='color:rgba(255,117,51,0.5);font-family:monospace'>// </span>" if prefix else ""
     return (
-        f"<h3 style='color:#E65000;font-family:monospace;"
+        f"<h3 style='color:#FF7533;font-family:monospace;"
         f"margin:20px 0 8px;letter-spacing:1px'>{pre}{text}</h3>"
     )

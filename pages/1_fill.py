@@ -36,7 +36,7 @@ if st.session_state.get("_submitting"):
         # _pending_order 已被消费但 rerun 尚未完成，显示等待防止表单渲染
         st.markdown(
             "<div style='text-align:center;padding:60px 20px'>"
-            "<div style='font-size:28px;color:#E65000;font-family:monospace;font-weight:700'>// 处理中</div>"
+            "<div style='font-size:28px;color:#FF7533;font-family:monospace;font-weight:700'>// 处理中</div>"
             "<h3>正在处理，请稍候…</h3>"
             "</div>",
             unsafe_allow_html=True,
@@ -45,7 +45,7 @@ if st.session_state.get("_submitting"):
 
     st.markdown(
         "<div style='text-align:center;padding:60px 20px'>"
-        "<div style='font-size:28px;color:#E65000;font-family:monospace;font-weight:700'>// 提交中</div>"
+        "<div style='font-size:28px;color:#FF7533;font-family:monospace;font-weight:700'>// 提交中</div>"
         "<h3>正在提交，请稍候…</h3>"
         "<p style='color:#888'>请勿关闭页面或重复点击</p>"
         "</div>",
@@ -108,7 +108,7 @@ if st.session_state.get("form_submitted"):
     submitted_name = st.session_state.get("submitted_name", "您")
     st.markdown(
         f"<div style='text-align:center;padding:60px 20px'>"
-        f"<div style='font-size:48px;color:#E65000;font-family:monospace;font-weight:700'>// OK</div>"
+        f"<div style='font-size:48px;color:#FF7533;font-family:monospace;font-weight:700'>// OK</div>"
         f"<h2>{submitted_name} 的资料已提交成功！</h2>"
         f"<p style='color:#666;font-size:16px'>我们的文案老师会在 1-2 个工作日内完成制作<br>"
         f"完成后通过微信发送给您，请注意查收</p>"
@@ -120,7 +120,7 @@ if st.session_state.get("form_submitted"):
 # ── 页面标题 ──────────────────────────────────────────
 st.markdown(
     "<div style='text-align:center;padding:24px 0 8px'>"
-    "<div style='font-size:11px;color:#E65000;font-family:monospace;"
+    "<div style='font-size:11px;color:#FF7533;font-family:monospace;"
     "letter-spacing:3px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
     "<h2 style='color:#F0F0F0;margin-bottom:4px'>客户资料填写</h2>"
     "<p style='color:#555;font-size:13px'>晓牧传媒 · 专业短视频文案定制</p>"
