@@ -3,7 +3,14 @@
 """
 import streamlit as st
 import os
+import logging
 import extra_streamlit_components as stx
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+    datefmt="%H:%M:%S",
+)
 from core import (
     parse_form, build_client, generate_scripts,
     make_word_bytes, INDUSTRY_NAMES

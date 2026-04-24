@@ -2,7 +2,9 @@
 晓牧传媒 · 核心生成逻辑
 路径全部相对于本文件，可部署到任何环境
 """
-import openai, json, re, os, datetime, io
+import openai, json, re, os, datetime, io, logging
+
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from docx import Document
 from docx.shared import Pt, RGBColor, Cm
@@ -181,8 +183,14 @@ def _clear_last_hard_ending(script):
             shots[i]['dialogue'] = d
             return
 
+_post_process_call_count = 0
+
 def post_process_scripts(scripts, client_name=''):
     """程序级后处理：最字替换 + 词频限制 + 结尾配额 + C2场景修正"""
+    global _post_process_call_count
+    _post_process_call_count += 1
+    call_n = _post_process_call_count
+    logger.info("[post_process #%d] 开始处理，共 %d 条脚本，client=%r", call_n, len(scripts), client_name)
     replacements_made = []
 
     # ── Step 1: 「最」字替换 ──────────────────────────
@@ -289,6 +297,15 @@ def post_process_scripts(scripts, client_name=''):
                 break
         seen_sentences.append((s['number'], curr))
 
+    zui_n   = sum(1 for r in replacements_made if r.get('type') == 'zui')
+    freq_n  = sum(1 for r in replacements_made if r.get('field') == 'freq')
+    c2_n    = sum(1 for r in replacements_made if r.get('field') == 'scene_c2')
+    dedup_n = sum(1 for r in replacements_made if r.get('field') == 'dedup_flag')
+    end_n   = sum(1 for r in replacements_made if r.get('field') == 'ending_quota')
+    logger.info(
+        "[post_process #%d] 完成。总替换 %d 处：最字=%d, 词频=%d, C2场景=%d, 结尾配额=%d, 重复标记=%d",
+        call_n, len(replacements_made), zui_n, freq_n, c2_n, end_n, dedup_n,
+    )
     return scripts, replacements_made
 
 
