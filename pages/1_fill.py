@@ -12,6 +12,7 @@ from streamlit_js_eval import streamlit_js_eval
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, get_field
 from db import insert_order, now_beijing
+from styles import DARK_CSS, ACCENT
 
 _DRAFT_KEY = "xm_fill_draft_v1"
 
@@ -21,10 +22,9 @@ st.set_page_config(
     layout="centered",
 )
 
-# 客户填表页：始终隐藏侧边栏，避免客户误点导航导致数据丢失
-st.markdown("""
+# 客户填表页：暗黑主题 + 隐藏侧边栏
+st.markdown(DARK_CSS + """
 <style>
-[data-testid="stSidebarNav"]     { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 section[data-testid="stSidebar"] { display: none !important; }
 #MainMenu                        { display: none !important; }
@@ -122,8 +122,12 @@ if st.session_state.get("form_submitted"):
 
 # ── 页面标题 ──────────────────────────────────────────
 st.markdown(
-    "<h2 style='text-align:center;margin-top:16px'>📝 客户资料填写</h2>"
-    "<p style='text-align:center;color:#888'>晓牧传媒 · 专业短视频文案定制</p>",
+    "<div style='text-align:center;padding:24px 0 8px'>"
+    "<div style='font-size:11px;color:#FF2D78;font-family:monospace;"
+    "letter-spacing:3px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
+    "<h2 style='color:#F0F0F0;margin-bottom:4px'>客户资料填写</h2>"
+    "<p style='color:#555;font-size:13px'>晓牧传媒 · 专业短视频文案定制</p>"
+    "</div>",
     unsafe_allow_html=True,
 )
 st.divider()

@@ -17,6 +17,7 @@ from core import (
 )
 from db import update_order, now_beijing
 from version import VERSION
+from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title
 
 _COOKIE_NAME = "xm_auth_v1"
 
@@ -27,39 +28,12 @@ st.set_page_config(
     layout="centered",
 )
 
-# 最早注入：隐藏原生英文导航 + 隐藏内容直到鉴权完成
-st.markdown("""
+# 最早注入：隐藏导航 + 隐藏内容直到鉴权完成
+st.markdown(DARK_CSS + """
 <style>
-[data-testid="stSidebarNav"]              { display: none !important; }
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
-
-# ── 全局橙色主题 CSS（覆盖 Streamlit 默认红/蓝）──────
-ORANGE_CSS = """
-<style>
-:root {
-    --primary-color: #E65000 !important;
-}
-/* 主按钮 */
-button[kind="primary"], .stButton > button[kind="primary"] {
-    background-color: #E65000 !important;
-    border-color: #E65000 !important;
-}
-button[kind="primary"]:hover {
-    background-color: #CC4800 !important;
-    border-color: #CC4800 !important;
-}
-/* 进度条 */
-.stProgress > div > div > div {
-    background-color: #E65000 !important;
-}
-/* 链接/高亮文字 */
-a { color: #E65000 !important; }
-/* 侧边栏导航隐藏（默认，按需在已登录时覆盖）*/
-[data-testid="stSidebarNav"] { display: none !important; }
-</style>
-"""
 
 # ── Cookie 管理器（浏览器持久化登录状态）─────────────
 _cookies = stx.CookieManager(key="xm_cookie_main")
@@ -95,23 +69,20 @@ if not st.session_state.get("logged_in"):
 
 # ── 登录页 ────────────────────────────────────────────
 def login_page():
-    st.markdown(ORANGE_CSS + """
-<style>
-[data-testid="stAppViewContainer"] > .main { visibility: visible; }
-[data-testid="collapsedControl"] { display: none !important; }
-section[data-testid="stSidebar"] { display: none !important; }
-#MainMenu                        { display: none !important; }
-</style>
-""", unsafe_allow_html=True)
+    st.markdown(LOGIN_EXTRA_CSS, unsafe_allow_html=True)
     st.markdown(
-        "<h2 style='text-align:center;margin-top:60px'>🎬 晓牧传媒</h2>"
-        "<p style='text-align:center;color:#888;margin-bottom:32px'>文案生成系统 · 内部专用</p>",
+        "<div style='text-align:center;margin-top:80px'>"
+        f"<div style='font-size:13px;color:#FF2D78;font-family:monospace;"
+        f"letter-spacing:3px;margin-bottom:12px'>// XIAOMUCHUANMEI</div>"
+        f"<h2 style='color:#F0F0F0;margin-bottom:4px'>晓牧传媒</h2>"
+        f"<p style='color:#555;font-size:14px;margin-bottom:40px'>文案生成系统 · 内部专用</p>"
+        "</div>",
         unsafe_allow_html=True,
     )
     with st.form("login_form"):
         username = st.text_input("用户名", placeholder="请输入用户名")
         password = st.text_input("密码", type="password", placeholder="请输入密码")
-        submitted = st.form_submit_button("登录", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("登 录", use_container_width=True, type="primary")
         if submitted:
             if _check_login(username, password):
                 _do_login(username)
@@ -122,24 +93,27 @@ if not st.session_state.get("logged_in"):
     login_page()
     st.stop()
 
-# ── 已登录：显示内容 + 橙色主题 + 管理后台导航 ──────
-st.markdown(ORANGE_CSS + """
-<style>
-[data-testid="stAppViewContainer"] > .main { visibility: visible; }
-</style>
+# ── 已登录：显示内容 ─────────────────────────────────
+st.markdown("""
+<style>[data-testid="stAppViewContainer"] > .main { visibility: visible; }</style>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown(
-        f"<div style='padding:12px 0 8px;font-size:15px;font-weight:600;"
-        f"color:#E65000'>🎬 晓牧传媒后台</div>",
+        "<div style='padding:16px 0 4px;font-family:monospace'>"
+        "<span style='color:rgba(255,45,120,0.5);font-size:11px'>// </span>"
+        "<span style='color:#FF2D78;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
+        "</div>"
+        "<div style='color:#555;font-size:11px;padding-bottom:12px;font-family:monospace'>"
+        "内容创作系统</div>",
         unsafe_allow_html=True,
     )
     st.page_link("streamlit_app.py",  label="✍️  生成文案")
     st.page_link("pages/2_orders.py", label="📋  订单管理")
     st.divider()
     st.markdown(
-        f"<span style='font-size:12px;color:#999'>👤 {st.session_state['username']}</span>",
+        f"<span style='font-size:11px;color:#444;font-family:monospace'>"
+        f"👤 {st.session_state['username']}</span>",
         unsafe_allow_html=True,
     )
     if st.button("退出登录", use_container_width=True):
@@ -147,10 +121,14 @@ with st.sidebar:
 
 # ── 顶部标题 ──────────────────────────────────────
 col_title, col_ver = st.columns([5, 1])
-col_title.title("🎬 晓牧传媒 · 文案生成系统")
+col_title.markdown(
+    "<h2 style='color:#F0F0F0;margin-bottom:0'>"
+    "<span style='color:rgba(255,45,120,0.5);font-family:monospace;font-size:20px'>// </span>"
+    "晓牧传媒 · 文案生成系统</h2>",
+    unsafe_allow_html=True,
+)
 col_ver.markdown(
-    f"<br><span style='background:#E65000;color:white;padding:3px 10px;"
-    f"border-radius:12px;font-size:13px'>v{VERSION}</span>",
+    f"<br>{accent_badge('v' + VERSION)}",
     unsafe_allow_html=True,
 )
 

@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, build_client, generate_scripts, make_word_bytes, INDUSTRY_NAMES
 from db import load_orders, update_order, delete_order, now_beijing, _local_load
 from version import VERSION
+from styles import DARK_CSS, ACCENT, accent_badge, section_title
 
 _COOKIE_NAME = "xm_auth_v1"
 _cookies = stx.CookieManager(key="xm_cookie_orders")
@@ -24,9 +25,8 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown("""
+st.markdown(DARK_CSS + """
 <style>
-[data-testid="stSidebarNav"]               { display: none !important; }
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -36,18 +36,17 @@ if not st.session_state.get("logged_in"):
     st.stop()
 
 st.markdown("""
-<style>
-[data-testid="stAppViewContainer"] > .main { visibility: visible; }
-[data-testid="stSidebarNav"] { display: none !important; }
-button[kind="primary"] { background-color:#E65000 !important; border-color:#E65000 !important; }
-button[kind="primary"]:hover { background-color:#CC4800 !important; border-color:#CC4800 !important; }
-a { color: #E65000 !important; }
-</style>
+<style>[data-testid="stAppViewContainer"] > .main { visibility: visible; }</style>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown(
-        "<div style='padding:12px 0 8px;font-size:15px;font-weight:600;color:#E65000'>🎬 晓牧传媒后台</div>",
+        "<div style='padding:16px 0 4px;font-family:monospace'>"
+        "<span style='color:rgba(255,45,120,0.5);font-size:11px'>// </span>"
+        "<span style='color:#FF2D78;font-size:14px;font-weight:700;letter-spacing:1px'>XIAOMUCHUANMEI</span>"
+        "</div>"
+        "<div style='color:#555;font-size:11px;padding-bottom:12px;font-family:monospace'>"
+        "内容创作系统</div>",
         unsafe_allow_html=True,
     )
     st.page_link("streamlit_app.py",  label="✍️  生成文案")
@@ -143,12 +142,13 @@ def _start_gen(order: dict, api_key: str):
 
 # ── 页面标题 ──────────────────────────────────────────
 col_t, col_v = st.columns([6, 1])
-col_t.title("📋 订单管理")
-col_v.markdown(
-    f"<br><span style='background:#E65000;color:white;padding:3px 10px;"
-    f"border-radius:12px;font-size:13px'>v{VERSION}</span>",
+col_t.markdown(
+    "<h2 style='color:#F0F0F0;margin-bottom:0'>"
+    "<span style='color:rgba(255,45,120,0.5);font-family:monospace;font-size:20px'>// </span>"
+    "订单管理</h2>",
     unsafe_allow_html=True,
 )
+col_v.markdown(f"<br>{accent_badge('v' + VERSION)}", unsafe_allow_html=True)
 st.caption(now_beijing())
 
 orders = load_orders()
@@ -187,10 +187,11 @@ filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=Tru
 pending_orders = [o for o in orders if o.get("status") == "待处理"]
 if pending_orders:
     st.markdown("""
-<div style='background:#FFF4EE;border:1.5px solid #E65000;border-radius:10px;
+<div style='background:rgba(255,45,120,0.06);border:1px solid rgba(255,45,120,0.30);
+            border-left:3px solid #FF2D78;border-radius:6px;
             padding:12px 16px;margin-bottom:8px'>
-<b style='color:#E65000'>📦 批量生成</b>
-<span style='color:#555;font-size:13px;margin-left:8px'>
+<span style='color:#FF2D78;font-family:monospace;font-weight:700'>// 批量生成</span>
+<span style='color:#888;font-size:13px;margin-left:8px'>
 勾选待处理订单 → 批量生成（多个订单同时在后台运行，页面不冻结）
 </span>
 </div>
