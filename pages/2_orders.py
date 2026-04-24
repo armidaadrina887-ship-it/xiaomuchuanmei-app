@@ -47,16 +47,11 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
-    st.divider()
     st.markdown(
-        f"<span style='font-size:11px;color:#555;font-family:monospace'>"
-        f"{st.session_state.get('username','')}</span>",
+        f"<div style='font-size:11px;color:#444;font-family:monospace;"
+        f"padding:4px 0'>{st.session_state.get('username','')}</div>",
         unsafe_allow_html=True,
     )
-    if st.button("退出登录", use_container_width=True):
-        _cookies.delete(_COOKIE_NAME)
-        st.session_state.clear()
-        st.switch_page("streamlit_app.py")
 
 try:
     api_key = st.secrets["KIMI_API_KEY"]

@@ -58,7 +58,12 @@ def _do_login(username: str):
 def _do_logout():
     _cookies.delete(_COOKIE_NAME)
     st.session_state.clear()
+    st.query_params.clear()
     st.rerun()
+
+# ── 顶部导航栏"退出"链接触发退出 ─────────────────────
+if st.query_params.get("_logout") == "1":
+    _do_logout()
 
 # ── Cookie 自动登录（刷新页面保持登录）────────────────
 if not st.session_state.get("logged_in"):
@@ -100,14 +105,11 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
-    st.divider()
     st.markdown(
-        f"<span style='font-size:11px;color:#555;font-family:monospace'>"
-        f"{st.session_state['username']}</span>",
+        f"<div style='font-size:11px;color:#444;font-family:monospace;"
+        f"padding:4px 0'>{st.session_state['username']}</div>",
         unsafe_allow_html=True,
     )
-    if st.button("退出登录", use_container_width=True):
-        _do_logout()
 
 # ── 顶部标题 ──────────────────────────────────────
 col_title, col_ver = st.columns([5, 1])
