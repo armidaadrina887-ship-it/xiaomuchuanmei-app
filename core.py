@@ -578,6 +578,12 @@ INDUSTRY_NAMES = {
     'general.md':    '通用',
 }
 
+_VALID_SCRIPT_TYPES = {
+    '故事型', '产品型', '幕后型', '痛点型', '教育型', '观点型', '对比型', '互动型', '氛围型',
+    '创始人/故事类', '商业模式/加盟类', '行业分析类', '门店展示类', '痛点/避坑类', '招募/互动类',
+    '其他',
+}
+
 def detect_industry(text):
     """
     计分式行业识别：统计每个行业命中的关键词数，得分最高的行业胜出。
@@ -862,6 +868,8 @@ def generate_scripts(client, api_key, progress_callback=None):
                 s['number'] = batch_start + i
                 if 'difficulty' not in s:
                     s['difficulty'] = '深度版'
+                if s.get('type') not in _VALID_SCRIPT_TYPES:
+                    s['type'] = '其他'
             all_scripts.extend(parsed)
         else:
             failed_batches.append(f"{batch_start}-{batch_end}")
@@ -965,27 +973,9 @@ def make_word_bytes(client, scripts):
 
     doc.add_page_break()
 
-    # 按类型分组
-    all_types = []
-    seen = set()
-    for s in scripts:
-        t = s.get('type','其他')
-        if t not in seen:
-            all_types.append(t)
-            seen.add(t)
-
-    for cat in all_types:
-        group = [s for s in scripts if s.get('type') == cat]
-        if not group:
-            continue
-        p_cat = doc.add_paragraph()
-        p_cat.paragraph_format.space_before = Pt(4)
-        p_cat.paragraph_format.space_after  = Pt(10)
-        r_cat = p_cat.add_run(f'▌ {cat}（{len(group)}条）')
-        r_cat.font.size = Pt(15); r_cat.font.bold = True
-        r_cat.font.color.rgb = RGBColor(0xCC,0x55,0x00)
-        for s in group:
-            _add_script_block(doc, s)
+    # 按编号顺序 1–30 输出，类型信息已在每条脚本标签栏中显示
+    for s in sorted(scripts, key=lambda s: s.get('number', 999)):
+        _add_script_block(doc, s)
 
     buf = io.BytesIO()
     doc.save(buf)
