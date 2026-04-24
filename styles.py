@@ -59,21 +59,25 @@ header[data-testid="stHeader"] {
   opacity: 1 !important;
 }
 
-/* ─── 侧边栏导航链接 ─────────────────────────────────── */
-.xm-nav { padding: 4px 0; }
-.xm-nav a {
-  display: block;
-  padding: 7px 10px;
-  margin: 2px 0;
+/* ─── 侧边栏按钮 → 导航条目样式 ─────────────────────── */
+[data-testid="stSidebar"] .stButton > button {
+  border: none !important;
+  border-left: 2px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
   color: var(--txt) !important;
-  text-decoration: none !important;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: background .15s, color .15s;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding: 7px 10px !important;
+  border-radius: 0 5px 5px 0 !important;
+  font-size: 14px !important;
+  transition: background .15s, color .15s, border-color .15s !important;
 }
-.xm-nav a:hover {
+[data-testid="stSidebar"] .stButton > button:hover {
   background: var(--accent-dim) !important;
   color: var(--accent) !important;
+  border-left-color: var(--accent) !important;
+  box-shadow: none !important;
 }
 
 /* ─── 文字 ──────────────────────────────────────────── */
@@ -290,14 +294,6 @@ LOGIN_EXTRA_CSS = HIDE_SIDEBAR_CSS + """
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: visible !important; }
 </style>
-"""
-
-# 侧边栏导航 HTML（用普通 <a> 代替 st.page_link，确保在所有版本下可见）
-SIDEBAR_NAV_HTML = """
-<div class='xm-nav'>
-  <a href='/' target='_self'>✍️&nbsp;&nbsp;生成文案</a>
-  <a href='/orders' target='_self'>📋&nbsp;&nbsp;订单管理</a>
-</div>
 """
 
 # 侧边栏品牌头部 HTML

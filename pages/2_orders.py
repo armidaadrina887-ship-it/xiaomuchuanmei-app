@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, build_client, generate_scripts, make_word_bytes, INDUSTRY_NAMES
 from db import load_orders, update_order, delete_order, now_beijing, _local_load
 from version import VERSION
-from styles import DARK_CSS, ACCENT, accent_badge, section_title, SIDEBAR_NAV_HTML, SIDEBAR_BRAND_HTML
+from styles import DARK_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML
 
 _COOKIE_NAME = "xm_auth_v1"
 _cookies = stx.CookieManager(key="xm_cookie_orders")
@@ -41,14 +41,17 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
-    st.markdown(SIDEBAR_NAV_HTML, unsafe_allow_html=True)
+    if st.button("✍️  生成文案", key="nav_gen", use_container_width=True):
+        st.switch_page("streamlit_app.py")
+    if st.button("📋  订单管理", key="nav_ord", use_container_width=True):
+        st.switch_page("pages/2_orders.py")
     st.divider()
     st.markdown(
         f"<span style='font-size:11px;color:#555;font-family:monospace'>"
         f"{st.session_state.get('username','')}</span>",
         unsafe_allow_html=True,
     )
-    if st.button("退出登录", use_container_width=True):
+    if st.button("退出登录", key="nav_logout", use_container_width=True):
         _cookies.delete(_COOKIE_NAME)
         st.session_state.clear()
         st.switch_page("streamlit_app.py")
