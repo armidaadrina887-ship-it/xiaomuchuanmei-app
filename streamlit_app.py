@@ -238,6 +238,30 @@ if generate_btn:
     status_text.success(f"✅ 生成完成！共 {len(scripts)} 条脚本")
     st.session_state.pop("_from_order", None)
 
+    # ── 质量评分展示 ─────────────────────────────────
+    score = client.get('score', {})
+    if score:
+        total = score.get('total', 0)
+        if total >= 90:
+            st.success(f"🏆 质量评分 **{total} 分** — 达标（≥90分）")
+        elif total >= 80:
+            st.warning(f"📊 质量评分 **{total} 分** — 良好，可考虑重新生成")
+        else:
+            st.error(f"📊 质量评分 **{total} 分** — 偏低，建议重新生成")
+        bd = score.get('breakdown', {})
+        cols = st.columns(5)
+        for col, (k, v) in zip(cols, [
+            ('钩子力',     bd.get('钩子力',     0)),
+            ('自然感',     bd.get('内容自然感', 0)),
+            ('多样性',     bd.get('内容多样性', 0)),
+            ('可执行性',   bd.get('拍摄可执行性', 0)),
+            ('结尾节奏',   bd.get('结尾节奏',   0)),
+        ]):
+            col.metric(k, f"{v}分")
+        issues = score.get('issues', [])
+        if issues:
+            st.caption("失分项：" + "；".join(issues))
+
     failed_batches = client.get('failed_batches', [])
     if failed_batches:
         st.warning(f"⚠️ 以下批次解析失败，实际生成 {len(scripts)} 条（非30条）：第{'、'.join(failed_batches)}条批次，建议重新生成")

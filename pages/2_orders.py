@@ -133,6 +133,7 @@ def _start_gen(order: dict, api_key: str):
                     "filename": f"{client['name']}_{client.get('company','')[:8]}_30条文案.docx",
                     "count":    len(scripts),
                     "client":   client,
+                    "score":    client.get('score', {}),
                 }
         except Exception as e:
             with store["lock"]:
@@ -281,7 +282,23 @@ for order in filtered:
         # ── 待下载 ────────────────────────────────────
         elif has_result:
             result = st.session_state[f"_result_{oid}"]
-            st.success(f"✅ 文案已生成完毕，共 {result['count']} 条")
+            score  = result.get('score', {})
+            total  = score.get('total', 0)
+            score_tag = f"  |  🏆 {total}分" if total >= 90 else (f"  |  ⚠️ {total}分" if total >= 80 else (f"  |  ❌ {total}分" if total else ""))
+            st.success(f"✅ 文案已生成完毕，共 {result['count']} 条{score_tag}")
+            if score:
+                bd = score.get('breakdown', {})
+                c1, c2, c3, c4, c5 = st.columns(5)
+                for col, (k, v) in zip([c1,c2,c3,c4,c5], [
+                    ('钩子力', bd.get('钩子力', 0)),
+                    ('自然感', bd.get('内容自然感', 0)),
+                    ('多样性', bd.get('内容多样性', 0)),
+                    ('可执行性', bd.get('拍摄可执行性', 0)),
+                    ('结尾节奏', bd.get('结尾节奏', 0)),
+                ]):
+                    col.metric(k, f"{v}分")
+                if score.get('issues'):
+                    st.caption("失分项：" + "；".join(score['issues']))
             dl = st.download_button(
                 label=f"⬇️ 下载 Word 文档（{result['count']}条）",
                 data=result["bytes"],

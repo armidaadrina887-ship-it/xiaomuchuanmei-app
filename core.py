@@ -67,7 +67,8 @@ _ZUI_REPLACEMENTS = [
     # 两字组合（优先匹配长词）
     ("最好吃", "好吃"),
     ("最好喝", "好喝"),
-    ("最新鲜", "很新鲜"),
+    ("最好的", "很好的"),   # 长词优先，避免被"最好"截断
+    ("最新鲜", "非常新鲜"),
     ("最实惠", "划算"),
     ("最便宜", "价格低"),
     ("最贵",   "价格高"),
@@ -108,11 +109,36 @@ _ZUI_REPLACEMENTS = [
     ("最喜欢", "挺喜欢"),
     ("最满意", "很满意"),
     ("最担心", "很担心"),
+    ("最正宗", "很地道"),
+    ("最地道", "很地道"),
+    ("最有效", "非常有效"),
+    ("最真实", "很真实"),
+    ("最宝贵", "很宝贵"),
+    ("最鲜活", "非常鲜活"),
+    ("最难忘", "很难忘"),
     ("最怕",   "最怕"),      # 保留：表达恐惧，不是吹嘘
     ("最后",   "最后"),      # 保留：时间序列用词
     ("最终",   "最终"),      # 保留：结果用词
     ("最近",   "最近"),      # 保留：时间用词
     ("最初",   "最初"),      # 保留：时间用词
+]
+
+# ── D1 极限词替换表（绝对/第一/独一无二 等，长词优先）──
+_D1_REPLACEMENTS = [
+    ("行业领先者",    "行业前列"),
+    ("行业第一",      "行业前列"),
+    ("销量第一",      "销量领先"),
+    ("全国第一",      "全国领先"),
+    ("品质第一",      "品质上乘"),
+    ("绝对值得",      "真的值得"),
+    ("绝对好吃",      "真的好吃"),
+    ("绝对让您满意",  "保证让您满意"),
+    ("绝对好",        "真的好"),
+    ("绝对",          "确实"),
+    ("史上最强",      "非常强"),
+    ("独一无二",      "独特"),
+    ("无与伦比",      "出色"),
+    ("无可替代",      "不可或缺"),
 ]
 
 # 需要保留的「最」（不替换）
@@ -133,7 +159,9 @@ _FREQ_LIMITS = {
     '用心':   (3, '认真'),
     '初心':   (2, '当初的想法'),
     '情怀':   (1, '感情'),
-    '不仅仅是': (2, '不只是'),
+    '不仅仅是': (3, '不只是'),
+    '更是':    (3, '也是'),
+    '每一台':  (3, '每台'),
     '致力于': (2, '一直在做'),
     '专注于': (2, '专门做'),
     '赋能':   (1, '帮助'),
@@ -193,18 +221,18 @@ def post_process_scripts(scripts, client_name=''):
     logger.info("[post_process #%d] 开始处理，共 %d 条脚本，client=%r", call_n, len(scripts), client_name)
     replacements_made = []
 
-    # ── Step 1: 「最」字替换 ──────────────────────────
+    # ── Step 1: 极限词替换（「最」字 + D1 极限词）────────
     for s in scripts:
         for field_name, value in [('title', s.get('title', '')),
                                    ('tips',  s.get('tips',  ''))]:
-            new_val = _apply_zui_replacements(value)
+            new_val = _apply_d1_replacements(_apply_zui_replacements(value))
             if new_val != value:
                 replacements_made.append({'script': s['number'], 'field': field_name, 'type': 'zui'})
                 s[field_name] = new_val
         for shot in s.get('shots', []):
             for field in ('dialogue', 'scene'):
                 original = shot.get(field, '')
-                replaced = _apply_zui_replacements(original)
+                replaced = _apply_d1_replacements(_apply_zui_replacements(original))
                 if replaced != original:
                     replacements_made.append({'script': s['number'], 'field': field, 'type': 'zui'})
                     shot[field] = replaced
@@ -232,7 +260,7 @@ def post_process_scripts(scripts, client_name=''):
                 else:
                     s['shots'][part_idx - 1]['dialogue'] = new_part
 
-    # ── Step 3: C2场景描述修正（把"顾客/员工"替换掉）──
+    # ── Step 3: 场景描述修正（C2多人出镜 + C4回忆复刻）──
     name = client_name or '主理人'
     c2_fix_count = 0
     for s in scripts:
@@ -240,7 +268,6 @@ def post_process_scripts(scripts, client_name=''):
             scene = shot.get('scene', '')
             for kw in SCENE_FORBIDDEN_PERSONS:
                 if kw in scene:
-                    # 用主理人动作替换多人出镜场景
                     shot['scene'] = re.sub(
                         r'.{0,8}' + re.escape(kw) + r'.{0,8}',
                         f'{name}站在镜头前',
@@ -249,10 +276,18 @@ def post_process_scripts(scripts, client_name=''):
                     c2_fix_count += 1
                     replacements_made.append({'script': s['number'], 'field': 'scene_c2', 'type': kw})
                     break
+    for s in scripts:
+        for shot in s.get('shots', []):
+            scene = shot.get('scene', '')
+            for kw in C4_SCENE_KEYWORDS:
+                if kw in scene:
+                    shot['scene'] = f'{name}站在当前位置，讲述过去的经历，镜头对着他'
+                    replacements_made.append({'script': s['number'], 'field': 'scene_c4', 'type': kw})
+                    break
 
     # ── Step 4: 结尾配额控制（硬引导≤6条）───────────
     hard_count = 0
-    HARD_LIMIT = 8
+    HARD_LIMIT = 6
     for s in scripts:
         last_d = _get_last_dialogue(s)
         ending_type = _classify_ending(last_d)
@@ -300,11 +335,12 @@ def post_process_scripts(scripts, client_name=''):
     zui_n   = sum(1 for r in replacements_made if r.get('type') == 'zui')
     freq_n  = sum(1 for r in replacements_made if r.get('field') == 'freq')
     c2_n    = sum(1 for r in replacements_made if r.get('field') == 'scene_c2')
+    c4_n    = sum(1 for r in replacements_made if r.get('field') == 'scene_c4')
     dedup_n = sum(1 for r in replacements_made if r.get('field') == 'dedup_flag')
     end_n   = sum(1 for r in replacements_made if r.get('field') == 'ending_quota')
     logger.info(
-        "[post_process #%d] 完成。总替换 %d 处：最字=%d, 词频=%d, C2场景=%d, 结尾配额=%d, 重复标记=%d",
-        call_n, len(replacements_made), zui_n, freq_n, c2_n, end_n, dedup_n,
+        "[post_process #%d] 完成。总替换 %d 处：极限词=%d, 词频=%d, C2场景=%d, C4回忆=%d, 结尾配额=%d, 重复标记=%d",
+        call_n, len(replacements_made), zui_n, freq_n, c2_n, c4_n, end_n, dedup_n,
     )
     return scripts, replacements_made
 
@@ -325,6 +361,13 @@ def _apply_zui_replacements(text):
         text = text.replace(f'__KEEP_{keep}__', keep)
     return text
 
+
+def _apply_d1_replacements(text):
+    """对单段文本执行D1极限词替换（绝对/行业第一/独一无二等）"""
+    for old, new in _D1_REPLACEMENTS:
+        if old in text:
+            text = text.replace(old, new)
+    return text
 
 def scan_forbidden_words(scripts, prompt_file, industry_keys=None):
     """返回违规列表 [{'script': 条号, 'word': 违禁词}]"""
@@ -381,6 +424,169 @@ def scan_scene_persons(scripts):
                         'shot': i + 1,
                         'keyword': kw,
                     })
+                    break
+    return violations
+
+# ── 自动评分辅助 ─────────────────────────────────────
+
+_D1_SCORE_WORDS = [
+    '唯一', '绝对', '独一无二', '无与伦比', '无可替代',
+    '行业第一', '销量第一', '全国第一', '史上最强',
+]
+
+def _count_remaining_extreme_words(scripts):
+    """统计D1极限词在postProcess后的残余数量"""
+    count = 0
+    for s in scripts:
+        text = ' '.join(
+            [s.get('title', ''), s.get('tips', '')]
+            + [shot.get('dialogue', '') + shot.get('scene', '')
+               for shot in s.get('shots', [])]
+        )
+        for w in _D1_SCORE_WORDS:
+            count += text.count(w)
+        for keep in _ZUI_KEEP:
+            text = text.replace(keep, '')
+        count += text.count('最')
+    return count
+
+def _count_long_sentences(scripts, threshold=25):
+    """统计口播中超过 threshold 字的单句数量"""
+    count = 0
+    for s in scripts:
+        for shot in s.get('shots', []):
+            for sent in re.split(r'[，。！？、……——\n]+', shot.get('dialogue', '')):
+                if len(sent.strip()) > threshold:
+                    count += 1
+    return count
+
+def _endings_count(scripts):
+    """统计三类结尾的数量"""
+    result = {'hard': 0, 'soft': 0, 'natural': 0}
+    for s in scripts:
+        t = _classify_ending(_get_last_dialogue(s))
+        result[t] = result.get(t, 0) + 1
+    return result
+
+def _dup_pair_count(scripts):
+    """统计重复对数（口播句子集合相似度≥60%）"""
+    def _sents(s):
+        sents = set()
+        for shot in s.get('shots', []):
+            for part in re.split(r'[，。！？、……——\n]+', shot.get('dialogue', '')):
+                part = part.strip()
+                if len(part) >= 5:
+                    sents.add(part)
+        return sents
+    pairs, seen = 0, []
+    for s in scripts:
+        curr = _sents(s)
+        if curr:
+            for prev in seen:
+                if prev and len(curr & prev) / min(len(curr), len(prev)) >= 0.6:
+                    pairs += 1
+                    break
+        seen.append(curr)
+    return pairs
+
+def auto_score(scripts, client):
+    """
+    五维评分 + 合规扣分，满分100分，交付线90分
+    返回 {'total': int, 'breakdown': dict, 'issues': list}
+    """
+    bd, issues = {}, []
+    prompt_file   = client.get('prompt_file', 'general.md')
+    industry_keys = client.get('industry_keys', [])
+    long_n        = _count_long_sentences(scripts, 25)
+
+    # ① 钩子力 25分
+    bad_hooks = scan_forbidden_openings(scripts)
+    penalty = len(bad_hooks) * 3
+    bd['钩子力'] = max(0, 25 - penalty)
+    if bad_hooks:
+        issues.append(f"B1套话开场：第{'、'.join(str(n) for n in bad_hooks)}条（-{penalty}分）")
+
+    # ② 内容自然感 20分
+    all_dialogue = ' '.join(
+        shot.get('dialogue', '')
+        for s in scripts for shot in s.get('shots', [])
+    )
+    nat_penalty = 0
+    for word, (limit, _) in _FREQ_LIMITS.items():
+        if all_dialogue.count(word) > limit * 2:
+            nat_penalty += 2
+    nat_penalty += min(4, long_n // 30)
+    bd['内容自然感'] = max(8, 20 - nat_penalty)
+
+    # ③ 内容多样性 20分
+    type_counts  = {}
+    for s in scripts:
+        t = s.get('type', '其他')
+        type_counts[t] = type_counts.get(t, 0) + 1
+    interactive_n = type_counts.get('互动型', 0)
+    dup_pairs     = _dup_pair_count(scripts)
+    div_penalty   = max(0, 5 - interactive_n) * 2 + dup_pairs * 3
+    bd['内容多样性'] = max(10, 20 - div_penalty)
+    if interactive_n < 5:
+        issues.append(f"互动型偏少：{interactive_n}条（参考值≥5条）")
+    if dup_pairs:
+        issues.append(f"疑似重复对：{dup_pairs}对（-{dup_pairs * 3}分）")
+
+    # ④ 拍摄可执行性 18分
+    c2_n = len(scan_scene_persons(scripts))
+    c4_n = len(scan_c4_scenes(scripts))
+    shoot_penalty = (c2_n // 5) * 2 + c4_n * 2
+    bd['拍摄可执行性'] = max(8, 18 - shoot_penalty)
+    if c2_n:
+        issues.append(f"C2多人出镜：{c2_n}处（-{(c2_n // 5) * 2}分）")
+    if c4_n:
+        issues.append(f"C4回忆复刻：{c4_n}处（-{c4_n * 2}分）")
+
+    # ⑤ 结尾节奏 17分
+    endings      = _endings_count(scripts)
+    hard_penalty = max(0, endings['hard'] - 6)
+    soft_penalty = int(max(0, 8 - endings['soft']) * 0.5)
+    bd['结尾节奏'] = max(6, 17 - hard_penalty - soft_penalty)
+    if endings['hard'] > 6:
+        issues.append(f"硬引导偏多：{endings['hard']}条（上限6条，-{hard_penalty}分）")
+
+    # D1 极限词
+    d1_n = _count_remaining_extreme_words(scripts)
+    bd['D1极限词'] = -min(8, d1_n)
+    if d1_n:
+        issues.append(f"D1极限词残余：{d1_n}次（-{min(8, d1_n)}分）")
+
+    # D2 行业违禁词
+    d2_violations = scan_forbidden_words(scripts, prompt_file, industry_keys)
+    d2_n = len(d2_violations)
+    bd['D2违禁词'] = -min(15, d2_n * 5)
+    if d2_n:
+        issues.append(f"D2行业违禁词：{d2_n}个（-{min(15, d2_n * 5)}分）")
+
+    # D3 长句
+    bd['D3长句'] = -min(5, int(long_n * 0.5))
+
+    total = max(0, sum(bd.values()))
+    label = "✅达标" if total >= 90 else ("⚠️良好" if total >= 80 else "❌偏低")
+    logger.info(
+        "[auto_score] %s client=%r 总分=%d | 钩子=%d 自然感=%d 多样性=%d 可执行=%d 结尾=%d D1=%d D2=%d D3=%d",
+        label, client.get('name', '?'), total,
+        bd['钩子力'], bd['内容自然感'], bd['内容多样性'],
+        bd['拍摄可执行性'], bd['结尾节奏'], bd['D1极限词'], bd['D2违禁词'], bd['D3长句'],
+    )
+    return {'total': total, 'breakdown': bd, 'issues': issues}
+
+C4_SCENE_KEYWORDS = ['回忆镜头', '老照片', '旧照片', '当年的照片', '年轻时的', '历史画面', '闪回']
+
+def scan_c4_scenes(scripts):
+    """检测场景描述中出现的C4回忆复刻关键词"""
+    violations = []
+    for s in scripts:
+        for i, shot in enumerate(s.get('shots', [])):
+            scene = shot.get('scene', '')
+            for kw in C4_SCENE_KEYWORDS:
+                if kw in scene:
+                    violations.append({'script': s.get('number', '?'), 'shot': i + 1, 'keyword': kw})
                     break
     return violations
 
@@ -911,16 +1117,21 @@ def generate_scripts(client, api_key, progress_callback=None):
         opening_violations = scan_forbidden_openings(all_scripts)
         word_violations    = scan_forbidden_words(all_scripts, client['prompt_file'], client.get('industry_keys', []))
 
-    # ── 阶段四：程序级后处理（最字+词频+C2+结尾配额）──────
+    # ── 阶段四：程序级后处理（极限词+词频+C2/C4+结尾配额）──
     all_scripts, zui_replacements = post_process_scripts(all_scripts, client.get('name', ''))
 
     if failed_batches:
         client['failed_batches'] = failed_batches
 
+    # ── 阶段五：自动评分（仅展示，不触发重试）─────────────
     if progress_callback:
-        progress_callback(0.95, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
+        progress_callback(0.96, "正在评分...")
+    score_result = auto_score(all_scripts, client)
+    client['score'] = score_result
 
-    # 把违规信息附加到 client，供 streamlit 显示
+    if progress_callback:
+        progress_callback(0.98, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
+
     client['violations']                    = word_violations
     client['scene_violations']              = scene_violations
     client['opening_violations_remaining']  = opening_violations
