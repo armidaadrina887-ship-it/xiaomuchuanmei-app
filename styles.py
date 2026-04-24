@@ -307,6 +307,34 @@ SIDEBAR_BRAND_HTML = (
 )
 
 
+def render_topnav(active: str = "generate"):
+    """Render a horizontal nav bar at the top of every logged-in page.
+    active: 'generate' | 'orders'
+    """
+    import streamlit as st
+    st.markdown(
+        "<div style='font-family:monospace;font-size:11px;"
+        "color:rgba(255,117,51,0.45);margin-bottom:4px'>// 导航</div>",
+        unsafe_allow_html=True,
+    )
+    c1, c2, _ = st.columns([1, 1, 5])
+    if c1.button(
+        "生成文案",
+        key="topnav_gen",
+        use_container_width=True,
+        type="primary" if active == "generate" else "secondary",
+    ):
+        st.switch_page("streamlit_app.py")
+    if c2.button(
+        "订单管理",
+        key="topnav_ord",
+        use_container_width=True,
+        type="primary" if active == "orders" else "secondary",
+    ):
+        st.switch_page("pages/2_orders.py")
+    st.divider()
+
+
 def accent_badge(text: str) -> str:
     return (
         f"<span style='background:#FF7533;color:#fff;"

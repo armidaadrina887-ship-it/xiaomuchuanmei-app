@@ -17,7 +17,7 @@ from core import (
 )
 from db import update_order, now_beijing
 from version import VERSION
-from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML
+from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML, render_topnav
 
 _COOKIE_NAME = "xm_auth_v1"
 
@@ -100,17 +100,13 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
-    if st.button("✍️  生成文案", key="nav_gen", use_container_width=True):
-        st.switch_page("streamlit_app.py")
-    if st.button("📋  订单管理", key="nav_ord", use_container_width=True):
-        st.switch_page("pages/2_orders.py")
     st.divider()
     st.markdown(
         f"<span style='font-size:11px;color:#555;font-family:monospace'>"
         f"{st.session_state['username']}</span>",
         unsafe_allow_html=True,
     )
-    if st.button("退出登录", key="nav_logout", use_container_width=True):
+    if st.button("退出登录", use_container_width=True):
         _do_logout()
 
 # ── 顶部标题 ──────────────────────────────────────
@@ -127,6 +123,8 @@ col_ver.markdown(
 )
 
 st.caption("粘贴客户信息表 → 自动识别行业 → 10批×3条生成 → 行业违禁词扫描 → 下载Word")
+
+render_topnav("generate")
 
 # ── API Key ───────────────────────────────────────
 api_key = None
