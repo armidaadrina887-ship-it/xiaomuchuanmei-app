@@ -278,12 +278,12 @@ LOGIN_EXTRA_CSS = HIDE_SIDEBAR_CSS + """
 </style>
 """
 
-# 登录页分屏布局 CSS（全宽覆盖 centered 容器）
+# 登录页分屏布局 CSS（响应式：桌面分屏 / 手机单列）
 LOGIN_SPLIT_CSS = HIDE_SIDEBAR_CSS + """
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: visible !important; }
 header[data-testid="stHeader"] { display: none !important; }
-/* 撑满全宽 */
+/* 全宽覆盖 */
 .main .block-container,
 [data-testid="block-container"] {
     max-width: 100% !important;
@@ -291,29 +291,56 @@ header[data-testid="stHeader"] { display: none !important; }
     padding: 0 !important;
     margin: 0 !important;
 }
-/* 列容器无间距、垂直撑满 */
 [data-testid="stHorizontalBlock"] {
     gap: 0 !important;
     align-items: stretch !important;
-    flex-wrap: nowrap !important;
 }
 [data-testid="column"] { padding: 0 !important; }
-/* 右列：分隔线 */
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
-    border-left: 1px solid rgba(255,117,51,0.12) !important;
-}
-/* 右列内表单去除卡片外框 */
+/* 表单去卡片外框 */
 [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
-    padding: 0 56px !important;
 }
-/* 右列外层内边距 */
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-  > [data-testid="stVerticalBlockBorderWrapper"]
-  > div > [data-testid="stVerticalBlock"] {
-    padding: 0 !important;
-    gap: 0 !important;
+
+/* ── 桌面端（≥769px）：分屏 + 全屏高 ── */
+@media (min-width: 769px) {
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        min-height: 100vh !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
+        border-left: 1px solid rgba(255,117,51,0.12) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+    [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
+        padding: 0 60px !important;
+    }
+    .xm-mobile-brand { display: none !important; }
+    .xm-right-header { padding: 0 60px 8px !important; }
+}
+
+/* ── 手机端（≤768px）：隐藏左列，右列全宽 ── */
+@media (max-width: 768px) {
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
+        display: none !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+        border-left: none !important;
+        min-height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+    [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
+        padding: 0 24px !important;
+    }
+    .xm-mobile-brand { display: block !important; }
+    .xm-right-header { padding: 0 24px 8px !important; }
+    .xm-login-ver { padding: 16px 24px 40px !important; }
 }
 </style>
 """

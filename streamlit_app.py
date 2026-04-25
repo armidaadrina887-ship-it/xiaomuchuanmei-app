@@ -87,14 +87,27 @@ def login_page():
         st.markdown(LOGIN_LEFT_PANEL_HTML, unsafe_allow_html=True)
 
     with col_r:
-        # 右侧顶部标题区
+        # 手机端品牌标识（桌面隐藏，手机显示）
         st.markdown(
-            "<div style='padding:60px 0 0'>"
+            "<div class='xm-mobile-brand' style='display:none;"
+            "padding:56px 24px 0;text-align:center'>"
+            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.5);"
+            "letter-spacing:4px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
+            "<div style='font-size:22px;font-weight:800;color:#FF7533;"
+            "letter-spacing:1px;margin-bottom:4px'>晓牧传媒</div>"
+            "<div style='font-size:11px;color:#2E2E2E;font-family:monospace'>"
+            "内容创作系统 · 内部专用</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        # 欢迎标题（桌面/手机 padding 由 CSS 控制）
+        st.markdown(
+            "<div class='xm-right-header'>"
             "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.55);"
-            "letter-spacing:3px;margin-bottom:14px'>// 欢迎回来</div>"
-            "<h2 style='color:#F0F0F0;margin-bottom:6px;font-size:24px;"
-            "font-weight:700;text-align:left'>登录工作台</h2>"
-            "<p style='color:#444;font-size:13px;margin-bottom:36px;text-align:left'>"
+            "letter-spacing:3px;margin-bottom:14px;margin-top:40px'>// 欢迎回来</div>"
+            "<h2 style='color:#F0F0F0;margin-bottom:6px;font-size:24px;font-weight:700'>"
+            "登录工作台</h2>"
+            "<p style='color:#444;font-size:13px;margin-bottom:8px'>"
             "输入账号密码，进入晓牧传媒文案系统</p>"
             "</div>",
             unsafe_allow_html=True,
@@ -109,8 +122,8 @@ def login_page():
                 else:
                     st.error("用户名或密码错误")
         st.markdown(
-            f"<div style='padding:24px 56px 0;font-family:monospace;"
-            f"font-size:11px;color:#1E1E1E'>v{VERSION}</div>",
+            f"<div class='xm-login-ver' style='padding:20px 60px 40px;"
+            f"font-family:monospace;font-size:11px;color:#1E1E1E'>v{VERSION}</div>",
             unsafe_allow_html=True,
         )
 
