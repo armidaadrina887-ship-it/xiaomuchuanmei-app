@@ -349,9 +349,9 @@ section.main, [data-testid="stMain"] {
     border-left: 1px solid var(--login-divider) !important;
 }
 
-/* ── 欢迎文字区域 padding-top 实现视觉居中 ── */
+/* ── 欢迎文字区域 padding-top 实现视觉居中（偏下）── */
 .xm-right-wrap {
-    padding: max(28px, calc(50vh - 240px)) 44px 0 !important;
+    padding: max(40px, calc(50vh - 180px)) 44px 0 !important;
 }
 
 /* ── 主题图标按钮：固定右上角 ── */
@@ -433,13 +433,15 @@ LOGIN_LEFT_PANEL_HTML = """
 <div style="
     height:100%;
     min-height:100vh;
-    padding:52px 60px;
+    width:100%;
+    padding:80px 60px 52px;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
     position:relative;
     overflow:hidden;
     box-sizing:border-box;
+    background-color:#080808;
 ">
   <div style="position:absolute;top:-80px;right:-60px;width:300px;height:300px;
       background:radial-gradient(circle,rgba(255,117,51,0.10),transparent 65%);
