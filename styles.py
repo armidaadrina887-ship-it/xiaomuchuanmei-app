@@ -13,16 +13,18 @@ DARK_CSS = """
 <style>
 /* ─── 全局变量 ─────────────────────────────────────── */
 :root {
-  --accent:      #FF7533;
-  --accent-glow: rgba(255,117,51,0.35);
-  --accent-dim:  rgba(255,117,51,0.12);
-  --bg:          #0D0D0D;
-  --bg-card:     #161616;
-  --bg-input:    #1C1C1C;
-  --border:      rgba(255,117,51,0.20);
-  --border-hi:   rgba(255,117,51,0.50);
-  --txt:         #E8E8E8;
-  --txt-muted:   #888;
+  --accent:           #FF7533;
+  --accent-glow:      rgba(255,117,51,0.35);
+  --accent-dim:       rgba(255,117,51,0.12);
+  --bg:               #0D0D0D;
+  --bg-card:          #161616;
+  --bg-input:         #1C1C1C;
+  --border:           rgba(255,117,51,0.20);
+  --border-hi:        rgba(255,117,51,0.50);
+  --txt:              #E8E8E8;
+  --txt-muted:        #888;
+  --login-right-bg:   #0E0E0E;
+  --login-divider:    rgba(255,117,51,0.38);
 }
 
 /* ─── 主背景 ────────────────────────────────────────── */
@@ -296,11 +298,21 @@ section.main, [data-testid="stMain"] {
     margin: 0 !important;
 }
 
-/* ── 顶层列容器 ── */
-[data-testid="stHorizontalBlock"] {
+/* ── 仅顶层列容器撑满全屏高度（:not 排除嵌套列）── */
+[data-testid="stHorizontalBlock"]:not([data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"]) {
     gap: 0 !important;
     align-items: stretch !important;
     min-height: 100vh !important;
+    overflow: hidden !important;
+    flex-wrap: nowrap !important;
+}
+
+/* ── 嵌套列容器重置，避免撑高 ── */
+[data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {
+    min-height: unset !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
 }
 
 /* ── 所有列：去 padding，flex 撑满 ── */
@@ -316,7 +328,7 @@ section.main, [data-testid="stMain"] {
     gap: 0 !important;
 }
 
-/* ── 左列：深色网格背景铺满整列 ── */
+/* ── 左列：始终保持深色品牌风格 ── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
     background-color: #080808 !important;
     background-image:
@@ -326,10 +338,15 @@ section.main, [data-testid="stMain"] {
     overflow: hidden !important;
 }
 
-/* ── 右列：可见分隔线 + 深色背景 ── */
+/* ── 右列：跟随主题（CSS 变量由 DARK/LIGHT CSS 控制）── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
-    background-color: #0E0E0E !important;
-    border-left: 1px solid rgba(255,117,51,0.38) !important;
+    background-color: var(--login-right-bg) !important;
+    border-left: 1px solid var(--login-divider) !important;
+}
+
+/* ── 欢迎文字区域 padding-top 实现视觉居中 ── */
+.xm-right-wrap {
+    padding: max(32px, calc(50vh - 220px)) 52px 0 !important;
 }
 
 /* ── Form 去除卡片外框 + 水平 padding ── */
@@ -339,9 +356,8 @@ section.main, [data-testid="stMain"] {
     padding: 0 52px !important;
 }
 
-/* ── 桌面（≥769px）：并排不换行 ── */
+/* ── 桌面（≥769px）── */
 @media (min-width: 769px) {
-    [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
     .xm-mobile-brand { display: none !important; }
 }
 
@@ -358,6 +374,7 @@ section.main, [data-testid="stMain"] {
     [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
         padding: 0 24px !important;
     }
+    .xm-right-wrap { padding: 40px 24px 0 !important; }
     .xm-mobile-brand { display: block !important; }
 }
 </style>
@@ -458,13 +475,15 @@ SIDEBAR_BRAND_HTML = (
 LIGHT_CSS = """
 <style>
 :root {
-  --bg:          #F7F5F0;
-  --bg-card:     #FFFFFF;
-  --bg-input:    #EEECE7;
-  --txt:         #1A1A1A;
-  --txt-muted:   #888;
-  --border:      rgba(180,110,50,0.22);
-  --border-hi:   rgba(180,110,50,0.50);
+  --bg:               #F7F5F0;
+  --bg-card:          #FFFFFF;
+  --bg-input:         #EEECE7;
+  --txt:              #1A1A1A;
+  --txt-muted:        #888;
+  --border:           rgba(180,110,50,0.22);
+  --border-hi:        rgba(180,110,50,0.50);
+  --login-right-bg:   #F5F3EE;
+  --login-divider:    rgba(180,110,50,0.28);
 }
 .stApp,
 [data-testid="stAppViewContainer"],
