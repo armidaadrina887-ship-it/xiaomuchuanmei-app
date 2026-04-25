@@ -59,66 +59,8 @@ header[data-testid="stHeader"] {
   opacity: 1 !important;
 }
 
-/* ─── 顶部导航栏 ─────────────────────────────────────── */
-.xm-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 0 12px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 4px;
-}
-.xm-nav-sep {
-  color: rgba(255,117,51,0.40);
-  font-family: monospace;
-  font-size: 11px;
-  margin-right: 2px;
-  user-select: none;
-}
-.xm-nav-btn {
-  display: inline-block;
-  padding: 0 20px;
-  height: 36px;
-  line-height: 34px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  border: 1px solid rgba(255,117,51,0.35) !important;
-  background: transparent !important;
-  color: #C0C0C0 !important;
-  text-decoration: none !important;
-  transition: background .15s, color .15s, border-color .15s;
-}
-.xm-nav-btn:hover {
-  background: rgba(255,117,51,0.10) !important;
-  color: #FF7533 !important;
-  border-color: rgba(255,117,51,0.60) !important;
-}
-.xm-nav-active {
-  background: #FF7533 !important;
-  color: #fff !important;
-  border-color: #FF7533 !important;
-  box-shadow: 0 0 12px rgba(255,117,51,0.28) !important;
-}
-.xm-nav-active:hover {
-  background: #E65F1A !important;
-  color: #fff !important;
-  border-color: #E65F1A !important;
-}
-.xm-nav-logout {
-  margin-left: auto;
-  border-color: rgba(255,255,255,0.10) !important;
-  color: #444 !important;
-  font-size: 12px !important;
-  padding: 0 14px !important;
-}
-.xm-nav-logout:hover {
-  border-color: rgba(255,117,51,0.30) !important;
-  color: #888 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
+/* ─── 输入框 hint 隐藏（密码框"Press Enter"乱入）──────── */
+[data-testid="InputInstructions"] { display: none !important; }
 
 /* ─── 文字 ──────────────────────────────────────────── */
 p, span, div, label, caption, li,
@@ -347,20 +289,29 @@ SIDEBAR_BRAND_HTML = (
 )
 
 
-def render_topnav(active: str = "generate"):
-    """Render a consistent top nav bar. active: 'generate' | 'orders'"""
+def render_topnav(active: str = "generate", on_logout=None):
+    """Top nav bar.  active: 'generate' | 'orders'
+    on_logout: callable — called when user clicks 退出.
+    """
     import streamlit as st
-    gen_cls = "xm-nav-btn xm-nav-active" if active == "generate" else "xm-nav-btn"
-    ord_cls = "xm-nav-btn xm-nav-active" if active == "orders"   else "xm-nav-btn"
-    st.markdown(
-        f"<div class='xm-nav'>"
-        f"<span class='xm-nav-sep'>// </span>"
-        f"<a href='/' class='{gen_cls}'>生成文案</a>"
-        f"<a href='/orders' class='{ord_cls}'>订单管理</a>"
-        f"<a href='/?_logout=1' class='xm-nav-btn xm-nav-logout'>退出</a>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    c1, c2, _, c3 = st.columns([1, 1, 5, 1])
+    if c1.button(
+        "生成",
+        key="topnav_gen",
+        use_container_width=True,
+        type="primary" if active == "generate" else "secondary",
+    ):
+        st.switch_page("streamlit_app.py")
+    if c2.button(
+        "订单",
+        key="topnav_ord",
+        use_container_width=True,
+        type="primary" if active == "orders" else "secondary",
+    ):
+        st.switch_page("pages/2_orders.py")
+    if c3.button("退出", key="topnav_logout", use_container_width=True):
+        if on_logout:
+            on_logout()
 
 
 def accent_badge(text: str) -> str:

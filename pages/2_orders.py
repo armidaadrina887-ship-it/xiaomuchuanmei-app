@@ -45,6 +45,10 @@ st.markdown("""
 <style>[data-testid="stAppViewContainer"] > .main { visibility: visible; }</style>
 """, unsafe_allow_html=True)
 
+def _do_logout():
+    st.session_state.clear()
+    _cookies.delete(_COOKIE_NAME)
+
 with st.sidebar:
     st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
     st.markdown(
@@ -143,7 +147,7 @@ col_t.markdown(
 col_v.markdown(f"<br>{accent_badge('v' + VERSION)}", unsafe_allow_html=True)
 st.caption(now_beijing())
 
-render_topnav("orders")
+render_topnav("orders", on_logout=_do_logout)
 
 orders = load_orders()
 

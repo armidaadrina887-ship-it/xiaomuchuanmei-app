@@ -56,14 +56,9 @@ def _do_login(username: str):
     _cookies.set(_COOKIE_NAME, username)
 
 def _do_logout():
-    _cookies.delete(_COOKIE_NAME)
     st.session_state.clear()
-    st.query_params.clear()
-    st.rerun()
-
-# ── 顶部导航栏"退出"链接触发退出 ─────────────────────
-if st.query_params.get("_logout") == "1":
-    _do_logout()
+    _cookies.delete(_COOKIE_NAME)
+    # 不再手动 rerun —— _cookies.delete() 会触发组件刷新，避免双重刷新乱码
 
 # ── Cookie 自动登录（刷新页面保持登录）────────────────
 if not st.session_state.get("logged_in"):
@@ -126,7 +121,7 @@ col_ver.markdown(
 
 st.caption("粘贴客户信息表 → 自动识别行业 → 10批×3条生成 → 行业违禁词扫描 → 下载Word")
 
-render_topnav("generate")
+render_topnav("generate", on_logout=_do_logout)
 
 # ── API Key ───────────────────────────────────────
 api_key = None
