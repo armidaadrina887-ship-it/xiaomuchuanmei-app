@@ -278,6 +278,131 @@ LOGIN_EXTRA_CSS = HIDE_SIDEBAR_CSS + """
 </style>
 """
 
+# 登录页分屏布局 CSS（全宽覆盖 centered 容器）
+LOGIN_SPLIT_CSS = HIDE_SIDEBAR_CSS + """
+<style>
+[data-testid="stAppViewContainer"] > .main { visibility: visible !important; }
+header[data-testid="stHeader"] { display: none !important; }
+/* 撑满全宽 */
+.main .block-container,
+[data-testid="block-container"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/* 列容器无间距、垂直撑满 */
+[data-testid="stHorizontalBlock"] {
+    gap: 0 !important;
+    align-items: stretch !important;
+    flex-wrap: nowrap !important;
+}
+[data-testid="column"] { padding: 0 !important; }
+/* 右列：分隔线 */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
+    border-left: 1px solid rgba(255,117,51,0.12) !important;
+}
+/* 右列内表单去除卡片外框 */
+[data-testid="stHorizontalBlock"] [data-testid="stForm"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 56px !important;
+}
+/* 右列外层内边距 */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+  > [data-testid="stVerticalBlockBorderWrapper"]
+  > div > [data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0 !important;
+}
+</style>
+"""
+
+# 登录左侧品牌面板 HTML
+LOGIN_LEFT_PANEL_HTML = """
+<div style="
+    min-height:100vh;
+    padding:52px 56px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    background:#080808;
+    background-image:
+        linear-gradient(rgba(255,117,51,0.05) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,117,51,0.05) 1px,transparent 1px);
+    background-size:40px 40px;
+    position:relative;
+    overflow:hidden;
+    box-sizing:border-box;
+">
+  <div style="position:absolute;top:-80px;right:-60px;width:300px;height:300px;
+      background:radial-gradient(circle,rgba(255,117,51,0.10),transparent 65%);
+      pointer-events:none;z-index:0"></div>
+  <div style="position:absolute;bottom:100px;left:-50px;width:220px;height:220px;
+      background:radial-gradient(circle,rgba(255,117,51,0.06),transparent 65%);
+      pointer-events:none;z-index:0"></div>
+
+  <!-- 品牌 -->
+  <div style="position:relative;z-index:1">
+    <div style="font-family:monospace;font-size:10px;color:rgba(255,117,51,0.45);
+                letter-spacing:4px;margin-bottom:5px">// XIAOMUCHUANMEI</div>
+    <div style="font-size:20px;font-weight:800;color:#FF7533;letter-spacing:1px">晓牧传媒</div>
+    <div style="font-size:11px;color:#242424;font-family:monospace;margin-top:3px">
+      内容创作系统 · 内部专用</div>
+  </div>
+
+  <!-- 主文案 -->
+  <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
+              justify-content:center;padding:44px 0 28px">
+    <div style="font-family:monospace;font-size:56px;font-weight:900;
+                color:rgba(255,117,51,0.08);line-height:0.9;margin-bottom:22px;
+                letter-spacing:-2px;user-select:none">//</div>
+    <div style="font-size:46px;font-weight:900;color:#F0F0F0;
+                line-height:1.2;margin-bottom:16px;letter-spacing:-0.5px">
+      专注短视频<br><span style="color:#FF7533">文案内容</span>创作
+    </div>
+    <div style="font-size:12px;color:#333;line-height:2.0;
+                font-family:monospace;letter-spacing:0.3px">
+      AI 驱动生成 &nbsp;·&nbsp; 行业违禁词精准扫描<br>
+      10批次 × 3条 &nbsp;·&nbsp; 30个脚本一键导出 Word
+    </div>
+    <div style="width:36px;height:2px;background:#FF7533;
+                margin:26px 0 20px;opacity:0.55"></div>
+    <div style="display:flex;gap:32px;align-items:center">
+      <div>
+        <div style="font-size:24px;font-weight:700;color:#FF7533;
+                    font-family:monospace;line-height:1">30+</div>
+        <div style="font-size:10px;color:#2E2E2E;margin-top:3px;letter-spacing:0.3px">脚本/次生成</div>
+      </div>
+      <div style="width:1px;height:32px;background:rgba(255,117,51,0.15)"></div>
+      <div>
+        <div style="font-size:24px;font-weight:700;color:#FF7533;
+                    font-family:monospace;line-height:1">10+</div>
+        <div style="font-size:10px;color:#2E2E2E;margin-top:3px;letter-spacing:0.3px">行业分类适配</div>
+      </div>
+      <div style="width:1px;height:32px;background:rgba(255,117,51,0.15)"></div>
+      <div>
+        <div style="font-size:24px;font-weight:700;color:#FF7533;
+                    font-family:monospace;line-height:1">AI</div>
+        <div style="font-size:10px;color:#2E2E2E;margin-top:3px;letter-spacing:0.3px">智能质量评分</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 标签 -->
+  <div style="position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap">
+    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+                 padding:5px 13px;border-radius:2px;font-family:monospace">AI 文案生成</span>
+    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+                 padding:5px 13px;border-radius:2px;font-family:monospace">违禁词扫描</span>
+    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+                 padding:5px 13px;border-radius:2px;font-family:monospace">Word 导出</span>
+    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+                 padding:5px 13px;border-radius:2px;font-family:monospace">订单管理</span>
+  </div>
+</div>
+"""
+
 # 侧边栏品牌头部 HTML
 SIDEBAR_BRAND_HTML = (
     "<div style='padding:16px 0 4px;font-family:monospace'>"

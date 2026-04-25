@@ -17,7 +17,11 @@ from core import (
 )
 from db import update_order, now_beijing
 from version import VERSION
-from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML, render_topnav, get_theme_css, render_sidebar_brand
+from styles import (
+    DARK_CSS, LOGIN_EXTRA_CSS, LOGIN_SPLIT_CSS, LOGIN_LEFT_PANEL_HTML,
+    ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML,
+    render_topnav, get_theme_css, render_sidebar_brand,
+)
 
 _COOKIE_NAME = "xm_auth_v1"
 
@@ -73,27 +77,42 @@ if not st.session_state.get("logged_in"):
         st.session_state["logged_in"] = True
         st.session_state["username"]  = saved
 
-# ── 登录页 ────────────────────────────────────────────
+# ── 登录页（分屏布局）────────────────────────────────
 def login_page():
-    st.markdown(LOGIN_EXTRA_CSS, unsafe_allow_html=True)
-    st.markdown(
-        "<div style='text-align:center;margin-top:80px'>"
-        f"<div style='font-size:13px;color:#FF7533;font-family:monospace;"
-        f"letter-spacing:3px;margin-bottom:12px;text-align:center'>// XIAOMUCHUANMEI</div>"
-        f"<h2 style='color:#F0F0F0;margin-bottom:4px;text-align:center'>晓牧传媒</h2>"
-        f"<p style='color:#888;font-size:14px;margin-bottom:40px;text-align:center'>文案生成系统 · 内部专用</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-    with st.form("login_form"):
-        username = st.text_input("用户名", placeholder="请输入用户名")
-        password = st.text_input("密码", type="password", placeholder="请输入密码")
-        submitted = st.form_submit_button("登 录", use_container_width=True, type="primary")
-        if submitted:
-            if _check_login(username, password):
-                _do_login(username)
-            else:
-                st.error("用户名或密码错误")
+    st.markdown(LOGIN_SPLIT_CSS, unsafe_allow_html=True)
+
+    col_l, col_r = st.columns([55, 45])
+
+    with col_l:
+        st.markdown(LOGIN_LEFT_PANEL_HTML, unsafe_allow_html=True)
+
+    with col_r:
+        # 右侧顶部标题区
+        st.markdown(
+            "<div style='padding:60px 0 0'>"
+            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.55);"
+            "letter-spacing:3px;margin-bottom:14px'>// 欢迎回来</div>"
+            "<h2 style='color:#F0F0F0;margin-bottom:6px;font-size:24px;"
+            "font-weight:700;text-align:left'>登录工作台</h2>"
+            "<p style='color:#444;font-size:13px;margin-bottom:36px;text-align:left'>"
+            "输入账号密码，进入晓牧传媒文案系统</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        with st.form("login_form"):
+            username = st.text_input("用户名", placeholder="请输入用户名")
+            password = st.text_input("密码", type="password", placeholder="请输入密码")
+            submitted = st.form_submit_button("登 录  →", use_container_width=True, type="primary")
+            if submitted:
+                if _check_login(username, password):
+                    _do_login(username)
+                else:
+                    st.error("用户名或密码错误")
+        st.markdown(
+            f"<div style='padding:24px 56px 0;font-family:monospace;"
+            f"font-size:11px;color:#1E1E1E'>v{VERSION}</div>",
+            unsafe_allow_html=True,
+        )
 
 if not st.session_state.get("logged_in"):
     login_page()
