@@ -289,6 +289,131 @@ SIDEBAR_BRAND_HTML = (
 )
 
 
+LIGHT_CSS = """
+<style>
+:root {
+  --bg:          #F7F5F0;
+  --bg-card:     #FFFFFF;
+  --bg-input:    #EEECE7;
+  --txt:         #1A1A1A;
+  --txt-muted:   #888;
+  --border:      rgba(180,110,50,0.22);
+  --border-hi:   rgba(180,110,50,0.50);
+}
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section.main,
+[data-testid="block-container"] {
+  background-color: #F7F5F0 !important;
+}
+header[data-testid="stHeader"] {
+  background-color: #F7F5F0 !important;
+  border-bottom: 1px solid rgba(180,110,50,0.18) !important;
+}
+[data-testid="stSidebar"] {
+  background-color: #ECEAE4 !important;
+  border-right: 1px solid rgba(180,110,50,0.18) !important;
+}
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] p {
+  color: #1A1A1A !important;
+}
+p, span, div, label, caption, li,
+h1, h2, h3, h4, h5, h6 { color: #1A1A1A; }
+.stCaption, [data-testid="stCaptionContainer"] * { color: #888 !important; }
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input {
+  background-color: #EEECE7 !important;
+  color: #1A1A1A !important;
+  border: 1px solid rgba(180,110,50,0.22) !important;
+}
+.stSelectbox [data-baseweb="select"] > div:first-child {
+  background-color: #EEECE7 !important;
+  color: #1A1A1A !important;
+}
+[data-baseweb="popover"] ul {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(180,110,50,0.22) !important;
+}
+[role="option"] {
+  background-color: #FFFFFF !important;
+  color: #1A1A1A !important;
+}
+[data-testid="metric-container"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(180,110,50,0.22) !important;
+  border-left: 3px solid #FF7533 !important;
+}
+[data-testid="stMetricValue"] { color: #1A1A1A !important; }
+[data-testid="stMetricLabel"] { color: #888 !important; }
+[data-testid="stExpander"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(180,110,50,0.22) !important;
+}
+[data-testid="stExpander"] summary {
+  color: #1A1A1A !important;
+  background-color: #FFFFFF !important;
+}
+[data-testid="stExpander"] > div:last-child {
+  background-color: #FFFFFF !important;
+}
+[data-testid="stForm"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(180,110,50,0.22) !important;
+}
+[data-testid="stCheckbox"] label,
+.stRadio label { color: #1A1A1A !important; }
+.stButton > button {
+  color: #1A1A1A !important;
+  border: 1px solid rgba(180,110,50,0.28) !important;
+}
+.stButton > button:hover { color: #1A1A1A !important; }
+.stTabs [data-baseweb="tab"] { color: #888 !important; }
+.stTabs [data-baseweb="tab-list"] {
+  border-bottom: 1px solid rgba(180,110,50,0.22) !important;
+}
+hr { border-color: rgba(180,110,50,0.18) !important; }
+.stProgress > div > div { background-color: #DDD9D0 !important; }
+[data-testid="stAlert"][data-baseweb="notification"][kind="positive"] {
+  background-color: rgba(0,180,90,0.07) !important;
+}
+[data-testid="stAlert"][data-baseweb="notification"][kind="warning"] {
+  background-color: rgba(200,140,0,0.07) !important;
+}
+[data-testid="stAlert"][data-baseweb="notification"][kind="error"] {
+  background-color: rgba(220,60,40,0.07) !important;
+}
+[data-testid="stAlert"][data-baseweb="notification"][kind="info"] {
+  background-color: rgba(60,100,220,0.06) !important;
+}
+::-webkit-scrollbar { background: #F7F5F0; }
+::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
+</style>
+"""
+
+
+def get_theme_css(theme: str = "dark") -> str:
+    return LIGHT_CSS if theme == "light" else ""
+
+
+def render_sidebar_brand(username: str = "", theme: str = "dark"):
+    import streamlit as st
+    st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
+    st.markdown(
+        f"<div style='font-size:11px;color:#444;font-family:monospace;"
+        f"padding:4px 0'>{username}</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown("<hr style='margin:8px 0'>", unsafe_allow_html=True)
+    label = "日 白天模式" if theme == "dark" else "夜 夜间模式"
+    if st.button(label, key="theme_toggle_btn", use_container_width=True):
+        st.session_state["theme"] = "light" if theme == "dark" else "dark"
+        st.rerun()
+
+
 def render_topnav(active: str = "generate", on_logout=None):
     """Top nav bar.  active: 'generate' | 'orders'
     on_logout: callable — called when user clicks 退出.

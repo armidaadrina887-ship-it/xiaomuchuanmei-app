@@ -17,7 +17,7 @@ from core import (
 )
 from db import update_order, now_beijing
 from version import VERSION
-from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML, render_topnav
+from styles import DARK_CSS, LOGIN_EXTRA_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML, render_topnav, get_theme_css, render_sidebar_brand
 
 _COOKIE_NAME = "xm_auth_v1"
 
@@ -28,15 +28,22 @@ st.set_page_config(
     layout="centered",
 )
 
+# ── Cookie 管理器（浏览器持久化登录状态）─────────────
+_cookies = stx.CookieManager(key="xm_cookie_main")
+
+# ── 退出处理（最优先，避免双重 rerun）────────────────
+if st.session_state.get("_logout_pending"):
+    st.session_state.clear()
+    _cookies.delete(_COOKIE_NAME)
+    st.rerun()
+
 # 最早注入：隐藏导航 + 隐藏内容直到鉴权完成
-st.markdown(DARK_CSS + """
+_theme = st.session_state.get("theme", "dark")
+st.markdown(DARK_CSS + get_theme_css(_theme) + """
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
-
-# ── Cookie 管理器（浏览器持久化登录状态）─────────────
-_cookies = stx.CookieManager(key="xm_cookie_main")
 
 def _check_login(username, password):
     try:
@@ -56,9 +63,8 @@ def _do_login(username: str):
     _cookies.set(_COOKIE_NAME, username)
 
 def _do_logout():
-    st.session_state.clear()
-    _cookies.delete(_COOKIE_NAME)
-    # 不再手动 rerun —— _cookies.delete() 会触发组件刷新，避免双重刷新乱码
+    st.session_state["_logout_pending"] = True
+    st.rerun()
 
 # ── Cookie 自动登录（刷新页面保持登录）────────────────
 if not st.session_state.get("logged_in"):
@@ -73,9 +79,9 @@ def login_page():
     st.markdown(
         "<div style='text-align:center;margin-top:80px'>"
         f"<div style='font-size:13px;color:#FF7533;font-family:monospace;"
-        f"letter-spacing:3px;margin-bottom:12px'>// XIAOMUCHUANMEI</div>"
-        f"<h2 style='color:#F0F0F0;margin-bottom:4px'>晓牧传媒</h2>"
-        f"<p style='color:#555;font-size:14px;margin-bottom:40px'>文案生成系统 · 内部专用</p>"
+        f"letter-spacing:3px;margin-bottom:12px;text-align:center'>// XIAOMUCHUANMEI</div>"
+        f"<h2 style='color:#F0F0F0;margin-bottom:4px;text-align:center'>晓牧传媒</h2>"
+        f"<p style='color:#888;font-size:14px;margin-bottom:40px;text-align:center'>文案生成系统 · 内部专用</p>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -99,11 +105,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
-    st.markdown(
-        f"<div style='font-size:11px;color:#444;font-family:monospace;"
-        f"padding:4px 0'>{st.session_state['username']}</div>",
-        unsafe_allow_html=True,
+    render_sidebar_brand(
+        username=st.session_state.get("username", ""),
+        theme=_theme,
     )
 
 # ── 顶部标题 ──────────────────────────────────────

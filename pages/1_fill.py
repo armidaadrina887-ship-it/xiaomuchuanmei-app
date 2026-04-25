@@ -121,9 +121,9 @@ if st.session_state.get("form_submitted"):
 st.markdown(
     "<div style='text-align:center;padding:24px 0 8px'>"
     "<div style='font-size:11px;color:#FF7533;font-family:monospace;"
-    "letter-spacing:3px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
-    "<h2 style='color:#F0F0F0;margin-bottom:4px'>客户资料填写</h2>"
-    "<p style='color:#555;font-size:13px'>晓牧传媒 · 专业短视频文案定制</p>"
+    "letter-spacing:3px;margin-bottom:8px;text-align:center'>// XIAOMUCHUANMEI</div>"
+    "<h2 style='color:#F0F0F0;margin-bottom:4px;text-align:center'>客户资料填写</h2>"
+    "<p style='color:#888;font-size:13px;text-align:center'>晓牧传媒 · 专业短视频文案定制</p>"
     "</div>",
     unsafe_allow_html=True,
 )

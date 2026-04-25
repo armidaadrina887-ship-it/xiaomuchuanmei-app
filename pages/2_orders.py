@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core import parse_form, build_client, generate_scripts, make_word_bytes, INDUSTRY_NAMES
 from db import load_orders, update_order, delete_order, now_beijing, _local_load
 from version import VERSION
-from styles import DARK_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML, render_topnav
+from styles import DARK_CSS, ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML, render_topnav, get_theme_css, render_sidebar_brand
 
 _COOKIE_NAME = "xm_auth_v1"
 _cookies = stx.CookieManager(key="xm_cookie_orders")
@@ -25,7 +25,16 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown(DARK_CSS + """
+# ── 退出处理（最优先）────────────────────────────────
+if st.session_state.get("_logout_pending"):
+    st.session_state.clear()
+    _cookies.delete(_COOKIE_NAME)
+    st.switch_page("streamlit_app.py")
+    st.stop()
+
+_theme = st.session_state.get("theme", "dark")
+
+st.markdown(DARK_CSS + get_theme_css(_theme) + """
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
@@ -46,15 +55,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def _do_logout():
-    st.session_state.clear()
-    _cookies.delete(_COOKIE_NAME)
+    st.session_state["_logout_pending"] = True
+    st.rerun()
 
 with st.sidebar:
-    st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
-    st.markdown(
-        f"<div style='font-size:11px;color:#444;font-family:monospace;"
-        f"padding:4px 0'>{st.session_state.get('username','')}</div>",
-        unsafe_allow_html=True,
+    render_sidebar_brand(
+        username=st.session_state.get("username", ""),
+        theme=_theme,
     )
 
 try:
@@ -198,7 +205,7 @@ if pending_orders:
     for o in pending_orders:
         gen = _get_gen(o["id"])
         is_running = gen.get("status") == "running"
-        label = (f"[{int(gen.get('progress',0)*100)}%]  · " if is_running else "") + \
+        label = (f"◑ {int(gen.get('progress',0)*100)}%  · " if is_running else "") + \
                 f"【{o.get('group_name','—')}】**{o.get('name','—')}** · {o.get('shop','—')} · {o.get('submitted_at','')}"
         if st.checkbox(label, key=f"batch_chk_{o['id']}", disabled=is_running):
             selected_ids.append(o["id"])
@@ -244,17 +251,18 @@ for order in filtered:
         any_running = True
 
     if is_running:
-        badge = f"[生成中 {int(gen.get('progress', 0)*100)}%]"
+        pct = int(gen.get('progress', 0) * 100)
+        badge = f"◑ 生成中 {pct}%"
     elif is_error:
-        badge = "[出错]"
+        badge = "✕ 出错"
     elif has_result:
-        badge = "[待下载]"
+        badge = "↓ 待下载"
     elif is_editing:
-        badge = "[编辑中]"
+        badge = "✎ 编辑中"
     elif db_status == "已生成":
-        badge = "[已生成]"
+        badge = "✔ 已生成"
     else:
-        badge = "[待处理]"
+        badge = "○ 待处理"
 
     group_name   = order.get("group_name", "未知群")
     name         = order.get("name", "未知")
