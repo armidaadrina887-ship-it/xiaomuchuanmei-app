@@ -108,10 +108,12 @@ def login_page():
         st.markdown(
             "<div class='xm-right-wrap'>"
             "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.6);"
-            "letter-spacing:3px;margin-bottom:16px'>// 欢 迎 回 来</div>"
-            "<h2 style='color:var(--txt);margin-bottom:6px;font-size:28px;font-weight:700'>"
-            "登录工作台</h2>"
-            "<p style='color:var(--txt-muted);font-size:13px;margin-bottom:32px;line-height:1.6'>"
+            "letter-spacing:3px;margin-bottom:14px'>// 欢 迎 回 来</div>"
+            f"<h2 style='color:var(--txt);margin-bottom:4px;font-size:26px;font-weight:700;"
+            f"display:flex;align-items:baseline;gap:10px'>登录工作台"
+            f"<span style='font-size:11px;color:var(--txt-muted);font-weight:400;"
+            f"font-family:monospace'>v{VERSION}</span></h2>"
+            "<p style='color:var(--txt-muted);font-size:13px;margin-bottom:28px;line-height:1.6'>"
             "输入账号密码，进入晓牧传媒文案系统</p>"
             "</div>",
             unsafe_allow_html=True,
@@ -145,11 +147,6 @@ def login_page():
                     st.rerun()
                 else:
                     st.error("用户名或密码错误")
-        st.markdown(
-            f"<div style='padding:6px 0 0 52px;font-family:monospace;"
-            f"font-size:11px;color:var(--txt-muted)'>v{VERSION}</div>",
-            unsafe_allow_html=True,
-        )
 
     # ── 主题切换（所有按钮状态确认后再执行）──────────────
     if theme_clicked:

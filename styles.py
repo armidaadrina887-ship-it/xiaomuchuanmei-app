@@ -328,14 +328,25 @@ section.main, [data-testid="stMain"] {
     gap: 0 !important;
 }
 
-/* ── 左列：始终保持深色品牌风格 ── */
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
+/* ── 左列：始终保持深色品牌风格（覆盖 LIGHT_CSS 的白色背景渗透）── */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child,
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child > div,
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stVerticalBlockBorderWrapper"] {
     background-color: #080808 !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
     background-image:
         linear-gradient(rgba(255,117,51,0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,117,51,0.05) 1px, transparent 1px) !important;
     background-size: 40px 40px !important;
     overflow: hidden !important;
+}
+/* 左列所有文字保持浅色（防 LIGHT_CSS 覆盖） */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child p,
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child span,
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child div {
+    color: inherit !important;
 }
 
 /* ── 右列：跟随主题（CSS 变量由 DARK/LIGHT CSS 控制）── */
@@ -346,7 +357,7 @@ section.main, [data-testid="stMain"] {
 
 /* ── 欢迎文字区域 padding-top 实现视觉居中 ── */
 .xm-right-wrap {
-    padding: max(32px, calc(50vh - 220px)) 52px 0 !important;
+    padding: max(28px, calc(50vh - 240px)) 44px 0 !important;
 }
 
 /* ── 主题图标按钮：固定右上角 ── */
@@ -382,11 +393,21 @@ section.main, [data-testid="stMain"] {
     box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
 }
 
-/* ── Form 去除卡片外框 + 水平 padding ── */
+/* ── Form 去除卡片外框 + 水平 padding（偏小让表单紧凑）── */
 [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
-    padding: 0 52px !important;
+    padding: 0 44px !important;
+}
+/* 输入框字号略小，减少视觉体积 */
+[data-testid="stHorizontalBlock"] .stTextInput input {
+    font-size: 13px !important;
+    padding: 6px 10px !important;
+}
+/* 登录按钮高度收紧 */
+[data-testid="stHorizontalBlock"] .stFormSubmitButton > button {
+    padding: 8px 0 !important;
+    font-size: 14px !important;
 }
 
 /* ── 桌面（≥769px）── */
@@ -405,9 +426,9 @@ section.main, [data-testid="stMain"] {
         border-left: none !important;
     }
     [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
-        padding: 0 24px !important;
+        padding: 0 20px !important;
     }
-    .xm-right-wrap { padding: 40px 24px 0 !important; }
+    .xm-right-wrap { padding: 36px 20px 0 !important; }
     .xm-mobile-brand { display: block !important; }
 }
 </style>
@@ -438,21 +459,21 @@ LOGIN_LEFT_PANEL_HTML = """
     <div style="font-family:monospace;font-size:10px;color:rgba(255,117,51,0.45);
                 letter-spacing:4px;margin-bottom:5px">// XIAOMUCHUANMEI</div>
     <div style="font-size:20px;font-weight:800;color:#FF7533;letter-spacing:1px">晓牧传媒</div>
-    <div style="font-size:11px;color:#242424;font-family:monospace;margin-top:3px">
+    <div style="font-size:11px;color:#666;font-family:monospace;margin-top:3px">
       内容创作系统 · 内部专用</div>
   </div>
 
   <!-- 主文案 -->
   <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
               justify-content:center;padding:44px 0 28px">
-    <div style="font-family:monospace;font-size:56px;font-weight:900;
-                color:rgba(255,117,51,0.08);line-height:0.9;margin-bottom:22px;
+    <div style="font-family:monospace;font-size:64px;font-weight:900;
+                color:rgba(255,117,51,0.30);line-height:0.9;margin-bottom:18px;
                 letter-spacing:-2px;user-select:none">//</div>
-    <div style="font-size:46px;font-weight:900;color:#F0F0F0;
-                line-height:1.2;margin-bottom:16px;letter-spacing:-0.5px">
+    <div style="font-size:52px;font-weight:900;color:#F0F0F0;
+                line-height:1.15;margin-bottom:14px;letter-spacing:-0.5px">
       专注短视频<br><span style="color:#FF7533">文案内容</span>创作
     </div>
-    <div style="font-size:12px;color:#666;line-height:2.0;
+    <div style="font-size:12px;color:#888;line-height:2.0;
                 font-family:monospace;letter-spacing:0.3px">
       AI 驱动生成 &nbsp;·&nbsp; 行业违禁词精准扫描<br>
       10批次 × 3条 &nbsp;·&nbsp; 30个脚本一键导出 Word
