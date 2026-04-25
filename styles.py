@@ -570,14 +570,22 @@ h1, h2, h3, h4, h5, h6 { color: #1A1A1A; }
   color: #1A1A1A !important;
   border: 1px solid rgba(180,110,50,0.22) !important;
 }
-/* Password visibility toggle button (not wrapped in .stButton) */
-[data-testid="stTextInput"] button {
+/* BaseUI input wrapper — the container that holds both <input> and the
+   password eye-icon button. emotion-cache sets a dark bg on this div;
+   targeting [data-baseweb="input"] is the correct layer to override. */
+[data-baseweb="input"] {
+  background: #EEECE7 !important;
+  background-color: #EEECE7 !important;
+}
+[data-baseweb="input"] button,
+[data-baseweb="input"] button:hover,
+[data-testid="stTextInput"] button,
+[data-testid="stTextInput"] button:hover {
+  background: #EEECE7 !important;
   background-color: #EEECE7 !important;
   color: #888 !important;
-  border-color: rgba(180,110,50,0.22) !important;
-}
-[data-testid="stTextInput"] button:hover {
-  background-color: #E4E0D7 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .stSelectbox [data-baseweb="select"] > div:first-child {
   background-color: #EEECE7 !important;
