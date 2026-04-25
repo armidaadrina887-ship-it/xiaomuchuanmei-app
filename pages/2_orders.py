@@ -28,6 +28,7 @@ st.set_page_config(
 # ── 退出处理（最优先）────────────────────────────────
 if st.session_state.get("_logout_pending"):
     st.session_state.clear()
+    st.session_state["_stay_login"] = True   # block stale-cookie auto-login
     _cookies.delete(_COOKIE_NAME)
     st.switch_page("streamlit_app.py")
     st.stop()
@@ -187,7 +188,7 @@ elif not orders:
 # ── 状态筛选 ──────────────────────────────────────────
 col_filter, col_count = st.columns([3, 1])
 with col_filter:
-    status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], horizontal=True)
+    status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], index=1, horizontal=True)
 with col_count:
     st.metric("待处理", sum(1 for o in orders if o.get("status") == "待处理"))
 

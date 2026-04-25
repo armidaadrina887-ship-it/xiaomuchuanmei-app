@@ -38,6 +38,7 @@ _cookies = stx.CookieManager(key="xm_cookie_main")
 # ── 退出处理（最优先，避免双重 rerun）────────────────
 if st.session_state.get("_logout_pending"):
     st.session_state.clear()
+    st.session_state["_stay_login"] = True   # block stale-cookie auto-login
     _cookies.delete(_COOKIE_NAME)
     st.rerun()
 

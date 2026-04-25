@@ -634,6 +634,14 @@ h1, h2, h3, h4, h5, h6 { color: #1A1A1A; }
 }
 [data-testid="stCheckbox"] label,
 .stRadio label { color: #1A1A1A !important; }
+/* Radio unselected indicator: muted ring, not solid black */
+[data-testid="stRadio"] [data-baseweb="radio"] svg {
+  color: rgba(150,110,60,0.40) !important;
+}
+[data-testid="stRadio"] [data-baseweb="radio"][aria-checked="true"] svg,
+[data-testid="stRadio"] [data-baseweb="radio"][aria-checked="true"] svg * {
+  color: #FF7533 !important;
+}
 .stButton > button {
   color: #1A1A1A !important;
   border: 1px solid rgba(180,110,50,0.28) !important;
