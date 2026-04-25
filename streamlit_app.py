@@ -64,40 +64,34 @@ def _user_exists(username):
 def _do_login(username: str):
     st.session_state["logged_in"] = True
     st.session_state["username"]  = username
+    # Clear all login-page guard flags so next session auto-login works
     st.session_state.pop("_stay_login", None)
+    st.session_state.pop("_cookie_attempts", None)
     _cookies.set(_COOKIE_NAME, username)
 
 def _do_logout():
     st.session_state["_logout_pending"] = True
     st.rerun()
 
-# ── Cookie 自动登录（刷新页面保持登录）────────────────
-# _stay_login persists across all CookieManager-triggered reruns until the
-# user explicitly logs in via the form (_do_login clears it).
-if not st.session_state.get("logged_in"):
-    if not st.session_state.get("_stay_login"):
-        saved = _cookies.get(_COOKIE_NAME)
-        if saved and _user_exists(saved):
-            st.session_state["logged_in"] = True
-            st.session_state["username"]  = saved
+# Cookie auto-login is handled INSIDE login_page() after all button states
+# are known — this prevents the race condition where the CookieManager's
+# cookie-delivery rerun fires simultaneously with a theme-toggle click.
 
 # ── 登录页（分屏布局）────────────────────────────────
 def login_page():
     _t = st.session_state.get("theme", "dark")
     st.markdown(LOGIN_SPLIT_CSS, unsafe_allow_html=True)
 
-    # 主题图标放在列布局之外，CSS 通过 :not(stHorizontalBlock) 定位到右上角
+    # 主题图标（列布局之外，CSS 定位到右上角）— 捕获点击状态，先不执行
     icon = "☀️" if _t == "dark" else "🌙"
-    if st.button(icon, key="login_theme_toggle"):
-        st.session_state["theme"] = "light" if _t == "dark" else "dark"
-        st.session_state["_stay_login"] = True
-        st.rerun()
+    theme_clicked = st.button(icon, key="login_theme_toggle")
 
     col_l, col_r = st.columns([52, 48])
 
     with col_l:
         st.markdown(LOGIN_LEFT_PANEL_HTML, unsafe_allow_html=True)
 
+    form_submitted = False
     with col_r:
         # 手机端品牌（桌面隐藏）
         st.markdown(
@@ -110,7 +104,7 @@ def login_page():
             "</div>",
             unsafe_allow_html=True,
         )
-        # 欢迎标题 — xm-right-wrap 带 padding-top 将内容推向视口中央
+        # 欢迎标题
         st.markdown(
             "<div class='xm-right-wrap'>"
             "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.6);"
@@ -142,12 +136,13 @@ def login_page():
                 label_visibility="collapsed"
             )
             st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button(
+            form_submitted = st.form_submit_button(
                 "登 录  →", use_container_width=True, type="primary"
             )
-            if submitted:
+            if form_submitted:
                 if _check_login(username, password):
                     _do_login(username)
+                    st.rerun()
                 else:
                     st.error("用户名或密码错误")
         st.markdown(
@@ -155,6 +150,25 @@ def login_page():
             f"font-size:11px;color:var(--txt-muted)'>v{VERSION}</div>",
             unsafe_allow_html=True,
         )
+
+    # ── 主题切换（所有按钮状态确认后再执行）──────────────
+    if theme_clicked:
+        st.session_state["theme"] = "light" if _t == "dark" else "dark"
+        st.session_state["_stay_login"] = True   # 防止下次 rerun 触发自动登录
+        st.rerun()
+
+    # ── Cookie 自动登录（最后执行，确保没有用户操作时才触发）──
+    # 用 _stay_login 标记"用户正在主动使用登录页"，阻止自动登录
+    # 用 _cookie_attempts 计数，只在 CookieManager 初始化的前两次 rerun 内尝试
+    if not form_submitted and not theme_clicked and not st.session_state.get("_stay_login"):
+        attempts = st.session_state.get("_cookie_attempts", 0)
+        if attempts < 2:
+            st.session_state["_cookie_attempts"] = attempts + 1
+            saved = _cookies.get(_COOKIE_NAME)
+            if saved and _user_exists(saved):
+                st.session_state["logged_in"] = True
+                st.session_state["username"]  = saved
+                st.rerun()
 
 if not st.session_state.get("logged_in"):
     login_page()
