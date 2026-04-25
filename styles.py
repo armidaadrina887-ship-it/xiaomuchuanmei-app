@@ -344,10 +344,10 @@ section.main, [data-testid="stMain"] {
     overflow: hidden !important;
 }
 
-/* ── 右列：跟随主题，左侧用 inset shadow 做橙色发光分隔线 ── */
+/* ── 右列：跟随主题，左侧用 soft glow 过渡（无硬线）── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
     background-color: var(--login-right-bg) !important;
-    box-shadow: inset 1px 0 0 rgba(255,117,51,0.35), inset 24px 0 48px rgba(255,117,51,0.05) !important;
+    box-shadow: inset 3px 0 32px rgba(255,117,51,0.07) !important;
 }
 
 /* ── 欢迎文字区域 padding-top 实现视觉居中（偏下）── */
@@ -468,9 +468,9 @@ LOGIN_LEFT_PANEL_HTML = """
   <div style="position:absolute;top:42%;right:-70px;width:320px;height:320px;
       background:radial-gradient(circle,rgba(255,117,51,0.09),transparent 60%);
       pointer-events:none;z-index:0"></div>
-  <!-- right-edge gradient strip -->
-  <div style="position:absolute;top:0;right:0;width:100px;height:100%;
-      background:linear-gradient(90deg,transparent,rgba(255,117,51,0.08));
+  <!-- right-edge gradient strip — soft fade, no hard line -->
+  <div style="position:absolute;top:0;right:0;width:120px;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,117,51,0.06));
       pointer-events:none;z-index:0"></div>
   <!-- bottom-left ambient -->
   <div style="position:absolute;bottom:60px;left:-50px;width:240px;height:240px;
