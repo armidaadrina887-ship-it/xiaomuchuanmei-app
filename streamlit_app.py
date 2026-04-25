@@ -64,6 +64,7 @@ def _user_exists(username):
 def _do_login(username: str):
     st.session_state["logged_in"] = True
     st.session_state["username"]  = username
+    st.session_state.pop("_stay_login", None)
     _cookies.set(_COOKIE_NAME, username)
 
 def _do_logout():
@@ -71,10 +72,10 @@ def _do_logout():
     st.rerun()
 
 # ── Cookie 自动登录（刷新页面保持登录）────────────────
-# _stay_login flag: set by login-page theme toggle to prevent cookie from
-# auto-logging-in the user during a theme-only rerun.
+# _stay_login persists across all CookieManager-triggered reruns until the
+# user explicitly logs in via the form (_do_login clears it).
 if not st.session_state.get("logged_in"):
-    if not st.session_state.pop("_stay_login", False):
+    if not st.session_state.get("_stay_login"):
         saved = _cookies.get(_COOKIE_NAME)
         if saved and _user_exists(saved):
             st.session_state["logged_in"] = True
@@ -84,6 +85,13 @@ if not st.session_state.get("logged_in"):
 def login_page():
     _t = st.session_state.get("theme", "dark")
     st.markdown(LOGIN_SPLIT_CSS, unsafe_allow_html=True)
+
+    # 主题图标放在列布局之外，CSS 通过 :not(stHorizontalBlock) 定位到右上角
+    icon = "☀️" if _t == "dark" else "🌙"
+    if st.button(icon, key="login_theme_toggle"):
+        st.session_state["theme"] = "light" if _t == "dark" else "dark"
+        st.session_state["_stay_login"] = True
+        st.rerun()
 
     col_l, col_r = st.columns([52, 48])
 
@@ -117,7 +125,7 @@ def login_page():
         # 登录表单
         with st.form("login_form"):
             st.markdown(
-                "<p style='font-size:11px;color:#666;margin-bottom:4px;"
+                "<p style='font-size:11px;color:var(--txt-muted);margin-bottom:4px;"
                 "font-family:monospace;letter-spacing:1px'>账号</p>",
                 unsafe_allow_html=True,
             )
@@ -125,7 +133,7 @@ def login_page():
                 "账号", placeholder="请输入账号", label_visibility="collapsed"
             )
             st.markdown(
-                "<p style='font-size:11px;color:#666;margin-bottom:4px;margin-top:8px;"
+                "<p style='font-size:11px;color:var(--txt-muted);margin-bottom:4px;margin-top:8px;"
                 "font-family:monospace;letter-spacing:1px'>密码</p>",
                 unsafe_allow_html=True,
             )
@@ -142,12 +150,6 @@ def login_page():
                     _do_login(username)
                 else:
                     st.error("用户名或密码错误")
-        # 主题切换图标（CSS 将其定位到页面右上角）
-        icon = "☀️" if _t == "dark" else "🌙"
-        if st.button(icon, key="login_theme_toggle"):
-            st.session_state["theme"] = "light" if _t == "dark" else "dark"
-            st.session_state["_stay_login"] = True
-            st.rerun()
         st.markdown(
             f"<div style='padding:6px 0 0 52px;font-family:monospace;"
             f"font-size:11px;color:var(--txt-muted)'>v{VERSION}</div>",

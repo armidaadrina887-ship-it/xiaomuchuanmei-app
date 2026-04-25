@@ -350,18 +350,17 @@ section.main, [data-testid="stMain"] {
 }
 
 /* ── 主题图标按钮：固定右上角 ── */
-/* The right column contains exactly ONE stButton (theme toggle);
-   stFormSubmitButton has a different data-testid so is not affected. */
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-    [data-testid="stButton"] {
+/* The theme button is rendered BEFORE st.columns(), so it is NOT inside
+   stHorizontalBlock. The :not() selector uniquely targets it without
+   affecting any button inside the column layout. */
+[data-testid="stButton"]:not([data-testid="stHorizontalBlock"] [data-testid="stButton"]) {
     position: fixed !important;
     top: 14px !important;
     right: 16px !important;
     z-index: 9999 !important;
     width: auto !important;
 }
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-    [data-testid="stButton"] > button {
+[data-testid="stButton"]:not([data-testid="stHorizontalBlock"] [data-testid="stButton"]) > button {
     width: 38px !important;
     height: 38px !important;
     border-radius: 50% !important;
@@ -373,14 +372,11 @@ section.main, [data-testid="stMain"] {
     justify-content: center !important;
     background: rgba(255,255,255,0.05) !important;
     border: 1px solid rgba(255,117,51,0.28) !important;
-    backdrop-filter: blur(6px) !important;
-    -webkit-backdrop-filter: blur(6px) !important;
     transition: all 0.2s !important;
     line-height: 1 !important;
     color: inherit !important;
 }
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-    [data-testid="stButton"] > button:hover {
+[data-testid="stButton"]:not([data-testid="stHorizontalBlock"] [data-testid="stButton"]) > button:hover {
     background: rgba(255,117,51,0.14) !important;
     border-color: rgba(255,117,51,0.55) !important;
     box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
