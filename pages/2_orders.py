@@ -41,9 +41,15 @@ st.markdown(DARK_CSS + get_theme_css(_theme) + """
 """, unsafe_allow_html=True)
 
 # cookie → session restore，防止刷新后丢失登录状态
+def _user_exists(username):
+    try:
+        return username in st.secrets["users"]
+    except Exception:
+        return False
+
 if not st.session_state.get("logged_in"):
     saved = _cookies.get(_COOKIE_NAME)
-    if saved:
+    if saved and _user_exists(saved):
         st.session_state["logged_in"] = True
         st.session_state["username"]  = saved
     else:

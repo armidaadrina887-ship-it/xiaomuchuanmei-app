@@ -328,25 +328,19 @@ section.main, [data-testid="stMain"] {
     gap: 0 !important;
 }
 
-/* ── 左列：始终保持深色品牌风格（覆盖 LIGHT_CSS 的白色背景渗透）── */
+/* ── 左列：始终保持深色品牌风格 ── */
+/* 用 * 覆盖所有后代（包含 Streamlit 的匿名 wrapper），防止 LIGHT_CSS 背景渗入 */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child,
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child > div,
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stVerticalBlock"],
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stVerticalBlockBorderWrapper"] {
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child * {
     background-color: #080808 !important;
 }
+/* 仅顶层列恢复网格背景图（子元素不继承 background-image） */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
     background-image:
         linear-gradient(rgba(255,117,51,0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,117,51,0.05) 1px, transparent 1px) !important;
     background-size: 40px 40px !important;
     overflow: hidden !important;
-}
-/* 左列所有文字保持浅色（防 LIGHT_CSS 覆盖） */
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child p,
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child span,
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child div {
-    color: inherit !important;
 }
 
 /* ── 右列：跟随主题（CSS 变量由 DARK/LIGHT CSS 控制）── */

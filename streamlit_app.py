@@ -86,7 +86,7 @@ def login_page():
     icon = "☀️" if _t == "dark" else "🌙"
     theme_clicked = st.button(icon, key="login_theme_toggle")
 
-    col_l, col_r = st.columns([52, 48])
+    col_l, col_r = st.columns([60, 40])
 
     with col_l:
         st.markdown(LOGIN_LEFT_PANEL_HTML, unsafe_allow_html=True)
