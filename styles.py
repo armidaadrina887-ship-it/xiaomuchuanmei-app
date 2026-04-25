@@ -349,6 +349,43 @@ section.main, [data-testid="stMain"] {
     padding: max(32px, calc(50vh - 220px)) 52px 0 !important;
 }
 
+/* ── 主题图标按钮：固定右上角 ── */
+/* The right column contains exactly ONE stButton (theme toggle);
+   stFormSubmitButton has a different data-testid so is not affected. */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+    [data-testid="stButton"] {
+    position: fixed !important;
+    top: 14px !important;
+    right: 16px !important;
+    z-index: 9999 !important;
+    width: auto !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+    [data-testid="stButton"] > button {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    min-width: unset !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,117,51,0.28) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    transition: all 0.2s !important;
+    line-height: 1 !important;
+    color: inherit !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+    [data-testid="stButton"] > button:hover {
+    background: rgba(255,117,51,0.14) !important;
+    border-color: rgba(255,117,51,0.55) !important;
+    box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
+}
+
 /* ── Form 去除卡片外框 + 水平 padding ── */
 [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
     background: transparent !important;

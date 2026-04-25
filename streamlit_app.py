@@ -71,11 +71,14 @@ def _do_logout():
     st.rerun()
 
 # ── Cookie 自动登录（刷新页面保持登录）────────────────
+# _stay_login flag: set by login-page theme toggle to prevent cookie from
+# auto-logging-in the user during a theme-only rerun.
 if not st.session_state.get("logged_in"):
-    saved = _cookies.get(_COOKIE_NAME)
-    if saved and _user_exists(saved):
-        st.session_state["logged_in"] = True
-        st.session_state["username"]  = saved
+    if not st.session_state.pop("_stay_login", False):
+        saved = _cookies.get(_COOKIE_NAME)
+        if saved and _user_exists(saved):
+            st.session_state["logged_in"] = True
+            st.session_state["username"]  = saved
 
 # ── 登录页（分屏布局）────────────────────────────────
 def login_page():
@@ -139,14 +142,15 @@ def login_page():
                     _do_login(username)
                 else:
                     st.error("用户名或密码错误")
-        # 底部：主题切换 + 版本（无嵌套列）
-        t_label = "日 白天模式" if _t == "dark" else "夜 黑夜模式"
-        if st.button(t_label, key="login_theme_toggle"):
+        # 主题切换图标（CSS 将其定位到页面右上角）
+        icon = "☀️" if _t == "dark" else "🌙"
+        if st.button(icon, key="login_theme_toggle"):
             st.session_state["theme"] = "light" if _t == "dark" else "dark"
+            st.session_state["_stay_login"] = True
             st.rerun()
         st.markdown(
-            f"<div style='padding:6px 0 0;font-family:monospace;"
-            f"font-size:11px;color:#222'>v{VERSION}</div>",
+            f"<div style='padding:6px 0 0 52px;font-family:monospace;"
+            f"font-size:11px;color:var(--txt-muted)'>v{VERSION}</div>",
             unsafe_allow_html=True,
         )
 
