@@ -25,6 +25,12 @@ DARK_CSS = """
   --txt-muted:        #888;
   --login-right-bg:   #0E0E0E;
   --login-divider:    rgba(255,117,51,0.38);
+  /* left panel theme tokens */
+  --lpn-bg:           #080808;
+  --lpn-txt:          #F0F0F0;
+  --lpn-muted:        #888;
+  --lpn-sub:          #666;
+  --lpn-grid:         rgba(255,117,51,0.05);
 }
 
 /* ─── 主背景 ────────────────────────────────────────── */
@@ -328,13 +334,12 @@ section.main, [data-testid="stMain"] {
     gap: 0 !important;
 }
 
-/* ── 左列：始终保持深色品牌风格 ── */
-/* Inline style on the HTML element handles descendants; only target the column itself */
+/* ── 左列：跟随主题 CSS 变量 ── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
-    background-color: #080808 !important;
+    background-color: var(--lpn-bg) !important;
     background-image:
-        linear-gradient(rgba(255,117,51,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,117,51,0.05) 1px, transparent 1px) !important;
+        linear-gradient(var(--lpn-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--lpn-grid) 1px, transparent 1px) !important;
     background-size: 40px 40px !important;
     overflow: hidden !important;
 }
@@ -437,18 +442,18 @@ LOGIN_LEFT_PANEL_HTML = """
     position:relative;
     overflow:hidden;
     box-sizing:border-box;
-    background-color:#080808;
+    background-color:var(--lpn-bg);
 ">
   <!-- right-edge warm bleed — orange glow radiating toward the divider -->
   <div style="position:absolute;top:5%;right:-90px;width:460px;height:460px;
-      background:radial-gradient(circle,rgba(255,117,51,0.18),transparent 62%);
+      background:radial-gradient(circle,rgba(255,117,51,0.16),transparent 62%);
       pointer-events:none;z-index:0"></div>
   <div style="position:absolute;top:42%;right:-70px;width:320px;height:320px;
-      background:radial-gradient(circle,rgba(255,117,51,0.11),transparent 60%);
+      background:radial-gradient(circle,rgba(255,117,51,0.09),transparent 60%);
       pointer-events:none;z-index:0"></div>
-  <!-- right-edge gradient strip — soft fade into the divider -->
+  <!-- right-edge gradient strip -->
   <div style="position:absolute;top:0;right:0;width:100px;height:100%;
-      background:linear-gradient(90deg,transparent,rgba(255,117,51,0.09));
+      background:linear-gradient(90deg,transparent,rgba(255,117,51,0.08));
       pointer-events:none;z-index:0"></div>
   <!-- bottom-left ambient -->
   <div style="position:absolute;bottom:60px;left:-50px;width:240px;height:240px;
@@ -457,10 +462,10 @@ LOGIN_LEFT_PANEL_HTML = """
 
   <!-- 品牌 -->
   <div style="position:relative;z-index:1">
-    <div style="font-family:monospace;font-size:10px;color:rgba(255,117,51,0.45);
+    <div style="font-family:monospace;font-size:10px;color:rgba(255,117,51,0.55);
                 letter-spacing:4px;margin-bottom:5px">// XIAOMUCHUANMEI</div>
     <div style="font-size:20px;font-weight:800;color:#FF7533;letter-spacing:1px">晓牧传媒</div>
-    <div style="font-size:11px;color:#666;font-family:monospace;margin-top:3px">
+    <div style="font-size:11px;color:var(--lpn-sub);font-family:monospace;margin-top:3px">
       内容创作系统 · 内部专用</div>
   </div>
 
@@ -470,11 +475,11 @@ LOGIN_LEFT_PANEL_HTML = """
     <div style="font-family:monospace;font-size:64px;font-weight:900;
                 color:rgba(255,117,51,0.30);line-height:0.9;margin-bottom:18px;
                 letter-spacing:-2px;user-select:none">//</div>
-    <div style="font-size:52px;font-weight:900;color:#F0F0F0;
+    <div style="font-size:52px;font-weight:900;color:var(--lpn-txt);
                 line-height:1.15;margin-bottom:14px;letter-spacing:-0.5px">
       专注短视频<br><span style="color:#FF7533">文案内容</span>创作
     </div>
-    <div style="font-size:12px;color:#888;line-height:2.0;
+    <div style="font-size:12px;color:var(--lpn-muted);line-height:2.0;
                 font-family:monospace;letter-spacing:0.3px">
       AI 驱动生成 &nbsp;·&nbsp; 行业违禁词精准扫描<br>
       10批次 × 3条 &nbsp;·&nbsp; 30个脚本一键导出 Word
@@ -485,32 +490,32 @@ LOGIN_LEFT_PANEL_HTML = """
       <div>
         <div style="font-size:24px;font-weight:700;color:#FF7533;
                     font-family:monospace;line-height:1">30+</div>
-        <div style="font-size:10px;color:#666;margin-top:3px;letter-spacing:0.3px">脚本/次生成</div>
+        <div style="font-size:10px;color:var(--lpn-sub);margin-top:3px;letter-spacing:0.3px">脚本/次生成</div>
       </div>
-      <div style="width:1px;height:32px;background:rgba(255,117,51,0.15)"></div>
+      <div style="width:1px;height:32px;background:rgba(255,117,51,0.18)"></div>
       <div>
         <div style="font-size:24px;font-weight:700;color:#FF7533;
                     font-family:monospace;line-height:1">10+</div>
-        <div style="font-size:10px;color:#666;margin-top:3px;letter-spacing:0.3px">行业分类适配</div>
+        <div style="font-size:10px;color:var(--lpn-sub);margin-top:3px;letter-spacing:0.3px">行业分类适配</div>
       </div>
-      <div style="width:1px;height:32px;background:rgba(255,117,51,0.15)"></div>
+      <div style="width:1px;height:32px;background:rgba(255,117,51,0.18)"></div>
       <div>
         <div style="font-size:24px;font-weight:700;color:#FF7533;
                     font-family:monospace;line-height:1">AI</div>
-        <div style="font-size:10px;color:#666;margin-top:3px;letter-spacing:0.3px">智能质量评分</div>
+        <div style="font-size:10px;color:var(--lpn-sub);margin-top:3px;letter-spacing:0.3px">智能质量评分</div>
       </div>
     </div>
   </div>
 
   <!-- 标签 -->
   <div style="position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap">
-    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:var(--lpn-muted);font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">AI 文案生成</span>
-    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:var(--lpn-muted);font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">违禁词扫描</span>
-    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:var(--lpn-muted);font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">Word 导出</span>
-    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:var(--lpn-muted);font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">订单管理</span>
   </div>
 </div>
@@ -539,6 +544,12 @@ LIGHT_CSS = """
   --border-hi:        rgba(180,110,50,0.50);
   --login-right-bg:   #F5F3EE;
   --login-divider:    rgba(180,110,50,0.28);
+  /* left panel light-mode tokens */
+  --lpn-bg:           #EDE8DE;
+  --lpn-txt:          #1A1A1A;
+  --lpn-muted:        #777;
+  --lpn-sub:          #999;
+  --lpn-grid:         rgba(180,80,20,0.07);
 }
 .stApp,
 [data-testid="stAppViewContainer"],
