@@ -570,6 +570,15 @@ h1, h2, h3, h4, h5, h6 { color: #1A1A1A; }
   color: #1A1A1A !important;
   border: 1px solid rgba(180,110,50,0.22) !important;
 }
+/* Password visibility toggle button (not wrapped in .stButton) */
+[data-testid="stTextInput"] button {
+  background-color: #EEECE7 !important;
+  color: #888 !important;
+  border-color: rgba(180,110,50,0.22) !important;
+}
+[data-testid="stTextInput"] button:hover {
+  background-color: #E4E0D7 !important;
+}
 .stSelectbox [data-baseweb="select"] > div:first-child {
   background-color: #EEECE7 !important;
   color: #1A1A1A !important;
