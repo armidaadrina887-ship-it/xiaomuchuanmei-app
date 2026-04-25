@@ -29,7 +29,10 @@ st.set_page_config(
 if st.session_state.get("_logout_pending"):
     st.session_state.clear()
     st.session_state["_stay_login"] = True   # block stale-cookie auto-login
-    _cookies.delete(_COOKIE_NAME)
+    try:
+        _cookies.delete(_COOKIE_NAME)
+    except Exception:
+        pass
     st.switch_page("streamlit_app.py")
     st.stop()
 
@@ -185,14 +188,25 @@ if not orders and not _local_orders:
 elif not orders:
     st.stop()
 
-# ── 状态筛选 ──────────────────────────────────────────
-col_filter, col_count = st.columns([3, 1])
+# ── 状态筛选 + 日期筛选 ───────────────────────────────
+col_filter, col_date, col_count = st.columns([2, 2, 1])
 with col_filter:
     status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], index=1, horizontal=True)
+with col_date:
+    date_range = st.date_input("日期范围", value=[], label_visibility="visible")
 with col_count:
     st.metric("待处理", sum(1 for o in orders if o.get("status") == "待处理"))
 
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
+
+if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+    d_start = date_range[0].strftime("%Y-%m-%d")
+    d_end   = date_range[1].strftime("%Y-%m-%d")
+    filtered = [
+        o for o in filtered
+        if d_start <= o.get("submitted_at", "")[:10] <= d_end
+    ]
+
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
 
 # ── 批量操作栏 ────────────────────────────────────────

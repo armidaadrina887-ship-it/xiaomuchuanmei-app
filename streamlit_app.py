@@ -39,7 +39,10 @@ _cookies = stx.CookieManager(key="xm_cookie_main")
 if st.session_state.get("_logout_pending"):
     st.session_state.clear()
     st.session_state["_stay_login"] = True   # block stale-cookie auto-login
-    _cookies.delete(_COOKIE_NAME)
+    try:
+        _cookies.delete(_COOKIE_NAME)
+    except Exception:
+        pass
     st.rerun()
 
 # 最早注入：隐藏导航 + 隐藏内容直到鉴权完成
