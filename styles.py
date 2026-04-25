@@ -22,7 +22,7 @@ DARK_CSS = """
   --border:      rgba(255,117,51,0.20);
   --border-hi:   rgba(255,117,51,0.50);
   --txt:         #E8E8E8;
-  --txt-muted:   #666;
+  --txt-muted:   #888;
 }
 
 /* ─── 主背景 ────────────────────────────────────────── */
@@ -296,18 +296,18 @@ section.main, [data-testid="stMain"] {
     margin: 0 !important;
 }
 
-/* ── 列容器：无间距，垂直撑满 ── */
+/* ── 顶层列容器 ── */
 [data-testid="stHorizontalBlock"] {
     gap: 0 !important;
     align-items: stretch !important;
     min-height: 100vh !important;
 }
 
-/* ── 让列及所有内层 div 都继承高度 ── */
+/* ── 所有列：去 padding，flex 撑满 ── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"],
 [data-testid="stHorizontalBlock"] > [data-testid="column"] > div,
 [data-testid="stHorizontalBlock"] > [data-testid="column"] > div > div,
-[data-testid="stHorizontalBlock"] [data-testid="stVerticalBlockBorderWrapper"] {
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div > div > div {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 !important;
@@ -315,12 +315,8 @@ section.main, [data-testid="stMain"] {
     padding: 0 !important;
     gap: 0 !important;
 }
-[data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"] {
-    flex: 1 !important;
-    gap: 0 !important;
-}
 
-/* ── 左列：深色网格背景铺满整列高度 ── */
+/* ── 左列：深色网格背景铺满整列 ── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
     background-color: #080808 !important;
     background-image:
@@ -330,35 +326,22 @@ section.main, [data-testid="stMain"] {
     overflow: hidden !important;
 }
 
-/* ── 右列：分隔线 + 内容垂直居中 ── */
+/* ── 右列：可见分隔线 + 深色背景 ── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
-    background-color: #0D0D0D !important;
-    border-left: 1px solid rgba(255,117,51,0.12) !important;
-}
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) > div > div > [data-testid="stVerticalBlock"],
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) > div > [data-testid="stVerticalBlock"] {
-    justify-content: center !important;
+    background-color: #0E0E0E !important;
+    border-left: 1px solid rgba(255,117,51,0.38) !important;
 }
 
-/* ── Form 去除卡片外框 ── */
+/* ── Form 去除卡片外框 + 水平 padding ── */
 [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
-    padding: 0 !important;
+    padding: 0 52px !important;
 }
 
-/* ── 桌面（≥769px）：并排 + 右列内容限宽 ── */
+/* ── 桌面（≥769px）：并排不换行 ── */
 @media (min-width: 769px) {
     [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
-    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-      > div > div > [data-testid="stVerticalBlock"],
-    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-      > div > [data-testid="stVerticalBlock"] {
-        max-width: 440px !important;
-        width: 100% !important;
-        margin: 0 auto !important;
-        padding: 80px 0 60px !important;
-    }
     .xm-mobile-brand { display: none !important; }
 }
 
@@ -372,11 +355,8 @@ section.main, [data-testid="stMain"] {
         min-width: 100% !important;
         border-left: none !important;
     }
-    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-      > div > div > [data-testid="stVerticalBlock"],
-    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
-      > div > [data-testid="stVerticalBlock"] {
-        padding: 60px 28px 40px !important;
+    [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
+        padding: 0 24px !important;
     }
     .xm-mobile-brand { display: block !important; }
 }
@@ -422,7 +402,7 @@ LOGIN_LEFT_PANEL_HTML = """
                 line-height:1.2;margin-bottom:16px;letter-spacing:-0.5px">
       专注短视频<br><span style="color:#FF7533">文案内容</span>创作
     </div>
-    <div style="font-size:12px;color:#333;line-height:2.0;
+    <div style="font-size:12px;color:#666;line-height:2.0;
                 font-family:monospace;letter-spacing:0.3px">
       AI 驱动生成 &nbsp;·&nbsp; 行业违禁词精准扫描<br>
       10批次 × 3条 &nbsp;·&nbsp; 30个脚本一键导出 Word
@@ -433,32 +413,32 @@ LOGIN_LEFT_PANEL_HTML = """
       <div>
         <div style="font-size:24px;font-weight:700;color:#FF7533;
                     font-family:monospace;line-height:1">30+</div>
-        <div style="font-size:10px;color:#2E2E2E;margin-top:3px;letter-spacing:0.3px">脚本/次生成</div>
+        <div style="font-size:10px;color:#666;margin-top:3px;letter-spacing:0.3px">脚本/次生成</div>
       </div>
       <div style="width:1px;height:32px;background:rgba(255,117,51,0.15)"></div>
       <div>
         <div style="font-size:24px;font-weight:700;color:#FF7533;
                     font-family:monospace;line-height:1">10+</div>
-        <div style="font-size:10px;color:#2E2E2E;margin-top:3px;letter-spacing:0.3px">行业分类适配</div>
+        <div style="font-size:10px;color:#666;margin-top:3px;letter-spacing:0.3px">行业分类适配</div>
       </div>
       <div style="width:1px;height:32px;background:rgba(255,117,51,0.15)"></div>
       <div>
         <div style="font-size:24px;font-weight:700;color:#FF7533;
                     font-family:monospace;line-height:1">AI</div>
-        <div style="font-size:10px;color:#2E2E2E;margin-top:3px;letter-spacing:0.3px">智能质量评分</div>
+        <div style="font-size:10px;color:#666;margin-top:3px;letter-spacing:0.3px">智能质量评分</div>
       </div>
     </div>
   </div>
 
   <!-- 标签 -->
   <div style="position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap">
-    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">AI 文案生成</span>
-    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">违禁词扫描</span>
-    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">Word 导出</span>
-    <span style="border:1px solid rgba(255,117,51,0.18);color:#2E2E2E;font-size:11px;
+    <span style="border:1px solid rgba(255,117,51,0.30);color:#777;font-size:11px;
                  padding:5px 13px;border-radius:2px;font-family:monospace">订单管理</span>
   </div>
 </div>

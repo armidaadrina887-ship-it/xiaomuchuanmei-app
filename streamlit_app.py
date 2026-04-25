@@ -79,6 +79,7 @@ if not st.session_state.get("logged_in"):
 
 # ── 登录页（分屏布局）────────────────────────────────
 def login_page():
+    _t = st.session_state.get("theme", "dark")
     st.markdown(LOGIN_SPLIT_CSS, unsafe_allow_html=True)
 
     col_l, col_r = st.columns([52, 48])
@@ -87,54 +88,86 @@ def login_page():
         st.markdown(LOGIN_LEFT_PANEL_HTML, unsafe_allow_html=True)
 
     with col_r:
-        # 手机端品牌标识（桌面隐藏，手机显示）
+        # ── 顶栏：主题切换（右侧对齐）──────────────────
         st.markdown(
-            "<div class='xm-mobile-brand' style='display:none;"
-            "padding:56px 24px 0;text-align:center'>"
-            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.5);"
-            "letter-spacing:4px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
-            "<div style='font-size:22px;font-weight:800;color:#FF7533;"
-            "letter-spacing:1px;margin-bottom:4px'>晓牧传媒</div>"
-            "<div style='font-size:11px;color:#2E2E2E;font-family:monospace'>"
-            "内容创作系统 · 内部专用</div>"
+            "<div style='padding:20px 52px 0;display:flex;justify-content:flex-end;"
+            "align-items:center;gap:8px'>"
+            "<span style='font-family:monospace;font-size:10px;color:#2A2A2A;"
+            "letter-spacing:1px'>主题</span>"
             "</div>",
             unsafe_allow_html=True,
         )
-        # 欢迎标题
+        _, theme_btn_col = st.columns([1, 1])
+        with theme_btn_col:
+            t_label = "日 白天模式" if _t == "dark" else "夜 黑夜模式"
+            if st.button(t_label, key="login_theme_toggle", use_container_width=True):
+                st.session_state["theme"] = "light" if _t == "dark" else "dark"
+                st.rerun()
+
+        # ── 手机端品牌（桌面隐藏）──────────────────────
         st.markdown(
-            "<div style='margin-bottom:8px'>"
-            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.55);"
-            "letter-spacing:3px;margin-bottom:18px'>// 欢迎回来</div>"
-            "<h2 style='color:#F0F0F0;margin-bottom:8px;font-size:26px;font-weight:700'>"
+            "<div class='xm-mobile-brand' style='display:none;"
+            "padding:32px 0 0;text-align:center'>"
+            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.5);"
+            "letter-spacing:4px;margin-bottom:8px'>// XIAOMUCHUANMEI</div>"
+            "<div style='font-size:22px;font-weight:800;color:#FF7533;letter-spacing:1px'>"
+            "晓牧传媒</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        # ── 垂直弹性空间（把表单推向视口中央）──────────
+        st.markdown(
+            "<div style='height:max(48px,calc(50vh - 280px))'></div>",
+            unsafe_allow_html=True,
+        )
+
+        # ── 欢迎标题 ────────────────────────────────────
+        st.markdown(
+            "<div style='padding:0 52px 28px'>"
+            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.6);"
+            "letter-spacing:3px;margin-bottom:16px'>// 欢 迎 回 来</div>"
+            "<h2 style='color:#F0F0F0;margin-bottom:6px;font-size:28px;font-weight:700'>"
             "登录工作台</h2>"
-            "<p style='color:#3A3A3A;font-size:13px;margin-bottom:36px;line-height:1.6'>"
+            "<p style='color:#666;font-size:13px;margin-bottom:0;line-height:1.6'>"
             "输入账号密码，进入晓牧传媒文案系统</p>"
             "</div>",
             unsafe_allow_html=True,
         )
+
+        # ── 登录表单 ─────────────────────────────────────
         with st.form("login_form"):
             st.markdown(
-                "<p style='font-size:12px;color:#555;margin-bottom:4px;"
-                "font-family:monospace;letter-spacing:0.5px'>账号</p>",
+                "<p style='font-size:11px;color:#666;margin-bottom:4px;"
+                "font-family:monospace;letter-spacing:1px'>账号</p>",
                 unsafe_allow_html=True,
             )
-            username = st.text_input("账号", placeholder="请输入账号", label_visibility="collapsed")
+            username = st.text_input(
+                "账号", placeholder="请输入账号", label_visibility="collapsed"
+            )
             st.markdown(
-                "<p style='font-size:12px;color:#555;margin-bottom:4px;margin-top:4px;"
-                "font-family:monospace;letter-spacing:0.5px'>密码</p>",
+                "<p style='font-size:11px;color:#666;margin-bottom:4px;margin-top:8px;"
+                "font-family:monospace;letter-spacing:1px'>密码</p>",
                 unsafe_allow_html=True,
             )
-            password = st.text_input("密码", type="password", placeholder="请输入密码", label_visibility="collapsed")
-            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("登 录  →", use_container_width=True, type="primary")
+            password = st.text_input(
+                "密码", type="password", placeholder="请输入密码",
+                label_visibility="collapsed"
+            )
+            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+            submitted = st.form_submit_button(
+                "登 录  →", use_container_width=True, type="primary"
+            )
             if submitted:
                 if _check_login(username, password):
                     _do_login(username)
                 else:
                     st.error("用户名或密码错误")
+
+        # ── 底部版本 ─────────────────────────────────────
         st.markdown(
-            f"<div style='margin-top:32px;font-family:monospace;"
-            f"font-size:11px;color:#1E1E1E'>v{VERSION}</div>",
+            f"<div style='padding:28px 52px 0;font-family:monospace;"
+            f"font-size:11px;color:#222'>v{VERSION}</div>",
             unsafe_allow_html=True,
         )
 
