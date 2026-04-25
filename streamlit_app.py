@@ -107,13 +107,15 @@ def login_page():
         # 欢迎标题
         st.markdown(
             "<div class='xm-right-wrap'>"
-            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.6);"
-            "letter-spacing:3px;margin-bottom:14px'>// 欢 迎 回 来</div>"
-            f"<h2 style='color:var(--txt);margin-bottom:4px;font-size:26px;font-weight:700;"
-            f"display:flex;align-items:baseline;gap:10px'>登录工作台"
+            "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.55);"
+            "letter-spacing:3px;margin-bottom:10px'>// 欢 迎 回 来</div>"
+            "<div style='width:28px;height:2px;background:rgba(255,117,51,0.50);"
+            "margin-bottom:14px'></div>"
+            f"<h2 style='color:var(--txt);margin-bottom:4px;font-size:24px;font-weight:700;"
+            f"display:flex;align-items:baseline;gap:8px'>登录工作台"
             f"<span style='font-size:11px;color:var(--txt-muted);font-weight:400;"
             f"font-family:monospace'>v{VERSION}</span></h2>"
-            "<p style='color:var(--txt-muted);font-size:13px;margin-bottom:28px;line-height:1.6'>"
+            "<p style='color:var(--txt-muted);font-size:13px;margin-bottom:24px;line-height:1.6'>"
             "输入账号密码，进入晓牧传媒文案系统</p>"
             "</div>",
             unsafe_allow_html=True,

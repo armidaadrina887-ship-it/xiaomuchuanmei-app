@@ -329,13 +329,9 @@ section.main, [data-testid="stMain"] {
 }
 
 /* ── 左列：始终保持深色品牌风格 ── */
-/* 用 * 覆盖所有后代（包含 Streamlit 的匿名 wrapper），防止 LIGHT_CSS 背景渗入 */
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child,
-[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child * {
-    background-color: #080808 !important;
-}
-/* 仅顶层列恢复网格背景图（子元素不继承 background-image） */
+/* Inline style on the HTML element handles descendants; only target the column itself */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
+    background-color: #080808 !important;
     background-image:
         linear-gradient(rgba(255,117,51,0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,117,51,0.05) 1px, transparent 1px) !important;
@@ -343,15 +339,15 @@ section.main, [data-testid="stMain"] {
     overflow: hidden !important;
 }
 
-/* ── 右列：跟随主题（CSS 变量由 DARK/LIGHT CSS 控制）── */
+/* ── 右列：跟随主题，左侧用 inset shadow 做橙色发光分隔线 ── */
 [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
     background-color: var(--login-right-bg) !important;
-    border-left: 1px solid var(--login-divider) !important;
+    box-shadow: inset 1px 0 0 rgba(255,117,51,0.35), inset 24px 0 48px rgba(255,117,51,0.05) !important;
 }
 
 /* ── 欢迎文字区域 padding-top 实现视觉居中（偏下）── */
 .xm-right-wrap {
-    padding: max(40px, calc(50vh - 180px)) 44px 0 !important;
+    padding: max(40px, calc(50vh - 220px)) 44px 0 !important;
 }
 
 /* ── 主题图标按钮：固定右上角 ── */
@@ -443,10 +439,19 @@ LOGIN_LEFT_PANEL_HTML = """
     box-sizing:border-box;
     background-color:#080808;
 ">
-  <div style="position:absolute;top:-80px;right:-60px;width:300px;height:300px;
-      background:radial-gradient(circle,rgba(255,117,51,0.10),transparent 65%);
+  <!-- right-edge warm bleed — orange glow radiating toward the divider -->
+  <div style="position:absolute;top:5%;right:-90px;width:460px;height:460px;
+      background:radial-gradient(circle,rgba(255,117,51,0.18),transparent 62%);
       pointer-events:none;z-index:0"></div>
-  <div style="position:absolute;bottom:100px;left:-50px;width:220px;height:220px;
+  <div style="position:absolute;top:42%;right:-70px;width:320px;height:320px;
+      background:radial-gradient(circle,rgba(255,117,51,0.11),transparent 60%);
+      pointer-events:none;z-index:0"></div>
+  <!-- right-edge gradient strip — soft fade into the divider -->
+  <div style="position:absolute;top:0;right:0;width:100px;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,117,51,0.09));
+      pointer-events:none;z-index:0"></div>
+  <!-- bottom-left ambient -->
+  <div style="position:absolute;bottom:60px;left:-50px;width:240px;height:240px;
       background:radial-gradient(circle,rgba(255,117,51,0.06),transparent 65%);
       pointer-events:none;z-index:0"></div>
 
