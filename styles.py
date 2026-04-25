@@ -412,18 +412,35 @@ section.main, [data-testid="stMain"] {
 
 /* ── 手机（≤768px）：隐藏左列，右列全宽 ── */
 @media (max-width: 768px) {
+    /* Stack columns vertically so flex-direction doesn't fight us */
+    [data-testid="stHorizontalBlock"]:not([data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"]) {
+        flex-direction: column !important;
+        flex-wrap: wrap !important;
+        min-height: 100vh !important;
+    }
+    /* Nuke the left column entirely — override Streamlit's inline flex+width */
     [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
         display: none !important;
+        flex: 0 0 0px !important;
+        width: 0 !important;
+        max-width: 0 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
     }
+    /* Right column: full viewport width — beats Streamlit's inline flex/width */
     [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
         flex: 1 1 100% !important;
+        width: 100% !important;
         min-width: 100% !important;
+        max-width: 100% !important;
         border-left: none !important;
+        box-shadow: none !important;
     }
     [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
         padding: 0 20px !important;
     }
-    .xm-right-wrap { padding: 36px 20px 0 !important; }
+    .xm-right-wrap { padding: 40px 20px 0 !important; }
     .xm-mobile-brand { display: block !important; }
 }
 </style>

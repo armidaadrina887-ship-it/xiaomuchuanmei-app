@@ -43,8 +43,18 @@ if st.session_state.get("_logout_pending"):
     st.rerun()
 
 # 最早注入：隐藏导航 + 隐藏内容直到鉴权完成
+# 登录页提前隐藏 sidebar/header，防止页面切换时闪烁乱码
 _theme = st.session_state.get("theme", "dark")
-st.markdown(DARK_CSS + get_theme_css(_theme) + """
+_is_login = not st.session_state.get("logged_in")
+_early_login_hide = """
+<style>
+[data-testid="collapsedControl"] { display: none !important; }
+section[data-testid="stSidebar"]  { display: none !important; }
+header[data-testid="stHeader"]     { display: none !important; }
+#MainMenu                          { display: none !important; }
+</style>
+""" if _is_login else ""
+st.markdown(DARK_CSS + get_theme_css(_theme) + _early_login_hide + """
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: hidden; }
 </style>
