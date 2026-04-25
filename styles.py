@@ -278,50 +278,91 @@ LOGIN_EXTRA_CSS = HIDE_SIDEBAR_CSS + """
 </style>
 """
 
-# 登录页分屏布局 CSS（响应式：桌面分屏 / 手机单列）
+# 登录页分屏布局 CSS（响应式：桌面分屏全屏 / 手机单列）
 LOGIN_SPLIT_CSS = HIDE_SIDEBAR_CSS + """
 <style>
 [data-testid="stAppViewContainer"] > .main { visibility: visible !important; }
 header[data-testid="stHeader"] { display: none !important; }
-/* 全宽覆盖 */
-.main .block-container,
-[data-testid="block-container"] {
+
+/* ── 全宽：清除所有容器 padding / max-width ── */
+section.main, [data-testid="stMain"] {
+    padding: 0 !important;
+    overflow-x: hidden !important;
+}
+.block-container, [data-testid="block-container"] {
     max-width: 100% !important;
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
 }
+
+/* ── 列容器：无间距，垂直撑满 ── */
 [data-testid="stHorizontalBlock"] {
     gap: 0 !important;
     align-items: stretch !important;
+    min-height: 100vh !important;
 }
-[data-testid="column"] { padding: 0 !important; }
-/* 表单去卡片外框 */
+
+/* ── 让列及所有内层 div 都继承高度 ── */
+[data-testid="stHorizontalBlock"] > [data-testid="column"],
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div,
+[data-testid="stHorizontalBlock"] > [data-testid="column"] > div > div,
+[data-testid="stHorizontalBlock"] [data-testid="stVerticalBlockBorderWrapper"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"] {
+    flex: 1 !important;
+    gap: 0 !important;
+}
+
+/* ── 左列：深色网格背景铺满整列高度 ── */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
+    background-color: #080808 !important;
+    background-image:
+        linear-gradient(rgba(255,117,51,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,117,51,0.05) 1px, transparent 1px) !important;
+    background-size: 40px 40px !important;
+    overflow: hidden !important;
+}
+
+/* ── 右列：分隔线 + 内容垂直居中 ── */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
+    background-color: #0D0D0D !important;
+    border-left: 1px solid rgba(255,117,51,0.12) !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) > div > div > [data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) > div > [data-testid="stVerticalBlock"] {
+    justify-content: center !important;
+}
+
+/* ── Form 去除卡片外框 ── */
 [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
     background: transparent !important;
     border: none !important;
+    padding: 0 !important;
 }
 
-/* ── 桌面端（≥769px）：分屏 + 全屏高 ── */
+/* ── 桌面（≥769px）：并排 + 右列内容限宽 ── */
 @media (min-width: 769px) {
-    [data-testid="stHorizontalBlock"] {
-        flex-wrap: nowrap !important;
-        min-height: 100vh !important;
-    }
-    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) {
-        border-left: 1px solid rgba(255,117,51,0.12) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-    }
-    [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
-        padding: 0 60px !important;
+    [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+      > div > div > [data-testid="stVerticalBlock"],
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+      > div > [data-testid="stVerticalBlock"] {
+        max-width: 440px !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+        padding: 80px 0 60px !important;
     }
     .xm-mobile-brand { display: none !important; }
-    .xm-right-header { padding: 0 60px 8px !important; }
 }
 
-/* ── 手机端（≤768px）：隐藏左列，右列全宽 ── */
+/* ── 手机（≤768px）：隐藏左列，右列全宽 ── */
 @media (max-width: 768px) {
     [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child {
         display: none !important;
@@ -330,17 +371,14 @@ header[data-testid="stHeader"] { display: none !important; }
         flex: 1 1 100% !important;
         min-width: 100% !important;
         border-left: none !important;
-        min-height: 100vh !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
     }
-    [data-testid="stHorizontalBlock"] [data-testid="stForm"] {
-        padding: 0 24px !important;
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+      > div > div > [data-testid="stVerticalBlock"],
+    [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2)
+      > div > [data-testid="stVerticalBlock"] {
+        padding: 60px 28px 40px !important;
     }
     .xm-mobile-brand { display: block !important; }
-    .xm-right-header { padding: 0 24px 8px !important; }
-    .xm-login-ver { padding: 16px 24px 40px !important; }
 }
 </style>
 """
@@ -348,16 +386,12 @@ header[data-testid="stHeader"] { display: none !important; }
 # 登录左侧品牌面板 HTML
 LOGIN_LEFT_PANEL_HTML = """
 <div style="
+    height:100%;
     min-height:100vh;
-    padding:52px 56px;
+    padding:52px 60px;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
-    background:#080808;
-    background-image:
-        linear-gradient(rgba(255,117,51,0.05) 1px,transparent 1px),
-        linear-gradient(90deg,rgba(255,117,51,0.05) 1px,transparent 1px);
-    background-size:40px 40px;
     position:relative;
     overflow:hidden;
     box-sizing:border-box;

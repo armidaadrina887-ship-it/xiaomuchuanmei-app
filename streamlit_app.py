@@ -29,7 +29,7 @@ _COOKIE_NAME = "xm_auth_v1"
 st.set_page_config(
     page_title="晓牧传媒 · 文案生成",
     page_icon="🎬",
-    layout="centered",
+    layout="wide",
 )
 
 # ── Cookie 管理器（浏览器持久化登录状态）─────────────
@@ -81,7 +81,7 @@ if not st.session_state.get("logged_in"):
 def login_page():
     st.markdown(LOGIN_SPLIT_CSS, unsafe_allow_html=True)
 
-    col_l, col_r = st.columns([55, 45])
+    col_l, col_r = st.columns([52, 48])
 
     with col_l:
         st.markdown(LOGIN_LEFT_PANEL_HTML, unsafe_allow_html=True)
@@ -100,21 +100,32 @@ def login_page():
             "</div>",
             unsafe_allow_html=True,
         )
-        # 欢迎标题（桌面/手机 padding 由 CSS 控制）
+        # 欢迎标题
         st.markdown(
-            "<div class='xm-right-header'>"
+            "<div style='margin-bottom:8px'>"
             "<div style='font-family:monospace;font-size:10px;color:rgba(255,117,51,0.55);"
-            "letter-spacing:3px;margin-bottom:14px;margin-top:40px'>// 欢迎回来</div>"
-            "<h2 style='color:#F0F0F0;margin-bottom:6px;font-size:24px;font-weight:700'>"
+            "letter-spacing:3px;margin-bottom:18px'>// 欢迎回来</div>"
+            "<h2 style='color:#F0F0F0;margin-bottom:8px;font-size:26px;font-weight:700'>"
             "登录工作台</h2>"
-            "<p style='color:#444;font-size:13px;margin-bottom:8px'>"
+            "<p style='color:#3A3A3A;font-size:13px;margin-bottom:36px;line-height:1.6'>"
             "输入账号密码，进入晓牧传媒文案系统</p>"
             "</div>",
             unsafe_allow_html=True,
         )
         with st.form("login_form"):
-            username = st.text_input("用户名", placeholder="请输入用户名")
-            password = st.text_input("密码", type="password", placeholder="请输入密码")
+            st.markdown(
+                "<p style='font-size:12px;color:#555;margin-bottom:4px;"
+                "font-family:monospace;letter-spacing:0.5px'>账号</p>",
+                unsafe_allow_html=True,
+            )
+            username = st.text_input("账号", placeholder="请输入账号", label_visibility="collapsed")
+            st.markdown(
+                "<p style='font-size:12px;color:#555;margin-bottom:4px;margin-top:4px;"
+                "font-family:monospace;letter-spacing:0.5px'>密码</p>",
+                unsafe_allow_html=True,
+            )
+            password = st.text_input("密码", type="password", placeholder="请输入密码", label_visibility="collapsed")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
             submitted = st.form_submit_button("登 录  →", use_container_width=True, type="primary")
             if submitted:
                 if _check_login(username, password):
@@ -122,8 +133,8 @@ def login_page():
                 else:
                     st.error("用户名或密码错误")
         st.markdown(
-            f"<div class='xm-login-ver' style='padding:20px 60px 40px;"
-            f"font-family:monospace;font-size:11px;color:#1E1E1E'>v{VERSION}</div>",
+            f"<div style='margin-top:32px;font-family:monospace;"
+            f"font-size:11px;color:#1E1E1E'>v{VERSION}</div>",
             unsafe_allow_html=True,
         )
 
@@ -133,7 +144,17 @@ if not st.session_state.get("logged_in"):
 
 # ── 已登录：显示内容 ─────────────────────────────────
 st.markdown("""
-<style>[data-testid="stAppViewContainer"] > .main { visibility: visible; }</style>
+<style>
+[data-testid="stAppViewContainer"] > .main { visibility: visible; }
+/* wide 模式下把生成页内容回收到可读宽度 */
+[data-testid="block-container"] {
+    max-width: 860px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
