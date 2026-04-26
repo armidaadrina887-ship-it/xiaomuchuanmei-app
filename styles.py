@@ -686,84 +686,64 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 ::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
 
 /* ── 日期选择器日历弹窗（覆盖 BaseUI 暗色主题）── */
-/* 用 color-scheme:light 让浏览器以浅色模式渲染，再逐层修正细节 */
+/* 策略：先把 calendar 内所有 div 强制刷白，再精确恢复需要特殊色的格子 */
 [data-baseweb="calendar"] {
   color-scheme: light !important;
   background: #FFFFFF !important;
-  background-color: #FFFFFF !important;
   border: 1px solid rgba(180,110,50,0.22) !important;
   border-radius: 6px !important;
+  overflow: hidden !important;
 }
-/* 所有直接子层容器也刷白 */
-[data-baseweb="calendar"] > div,
-[data-baseweb="calendar"] > div > div {
-  background: #FFFFFF !important;
-  background-color: #FFFFFF !important;
-}
-/* 文字全部深色 */
-[data-baseweb="calendar"] span,
-[data-baseweb="calendar"] p,
-[data-baseweb="calendar"] h5,
-[data-baseweb="calendar"] h6,
+/* 核心：calendar 内所有 div → 白底深字，覆盖 BaseUI emotion 暗色主题 */
 [data-baseweb="calendar"] div {
+  background: #FFFFFF !important;
   color: #1A1A1A !important;
 }
-/* 导航/日期按钮 */
+/* 按钮（月份导航 < >）*/
 [data-baseweb="calendar"] button {
-  color: #333 !important;
   background: transparent !important;
-  background-color: transparent !important;
+  color: #444 !important;
 }
 [data-baseweb="calendar"] button:hover {
   background: rgba(255,117,51,0.10) !important;
 }
-/* 每个日期格子：清除暗色高亮背景 */
+/* 日期格子内层高亮 div：透明，让选中色正确显示 */
 [data-baseweb="calendar"] [role="gridcell"] > div {
   background: transparent !important;
-  background-color: transparent !important;
 }
-/* 选中/区间内日期：浅橙色 */
+/* 区间内/选中日期：浅橙色 */
 [data-baseweb="calendar"] [aria-selected="true"] > div {
-  background: rgba(255,117,51,0.18) !important;
-  background-color: rgba(255,117,51,0.18) !important;
+  background: rgba(255,117,51,0.20) !important;
 }
-[data-baseweb="calendar"] [aria-selected="true"] > div,
 [data-baseweb="calendar"] [aria-selected="true"] > div * {
   color: #1A1A1A !important;
 }
-/* 今天：橙色圆圈边框 */
+/* 今天：橙色实心圆（深色文字已无法看清，改白字）*/
 [data-baseweb="calendar"] [data-today="true"] > div {
-  border: 2px solid #FF7533 !important;
-  background: transparent !important;
-  background-color: transparent !important;
+  background: #FF7533 !important;
+  border-radius: 50% !important;
 }
+[data-baseweb="calendar"] [data-today="true"] > div,
 [data-baseweb="calendar"] [data-today="true"] > div * {
-  color: #1A1A1A !important;
+  color: #fff !important;
 }
-/* 禁用日期 */
-[data-baseweb="calendar"] [aria-disabled="true"] span {
+/* 禁用/超出范围日期 */
+[data-baseweb="calendar"] [aria-disabled="true"] > div * {
   color: #BBBBBB !important;
 }
-/* 日历底部"None"选择框 */
-[data-baseweb="calendar"] [data-baseweb="select"] > div:first-child {
+/* 底部"None"快捷选择框 */
+[data-baseweb="calendar"] [data-baseweb="select"] > div {
   background: #EEECE7 !important;
-  background-color: #EEECE7 !important;
   color: #1A1A1A !important;
   border-color: rgba(180,110,50,0.22) !important;
 }
-[data-baseweb="calendar"] [data-baseweb="select"] span,
-[data-baseweb="calendar"] [data-baseweb="select"] div {
-  color: #1A1A1A !important;
-}
-/* 日期输入框文字（已选值显示）*/
-[data-testid="stDateInput"] input,
-[data-testid="stDateInput"] [data-baseweb="input"] input {
+/* 日期输入框（已选值文字）*/
+[data-testid="stDateInput"] input {
   color: #1A1A1A !important;
   -webkit-text-fill-color: #1A1A1A !important;
 }
 [data-testid="stDateInput"] [data-baseweb="input"] {
   background: #EEECE7 !important;
-  background-color: #EEECE7 !important;
 }
 </style>
 """

@@ -191,11 +191,17 @@ elif not orders:
 # ── 状态筛选 + 日期筛选 ───────────────────────────────
 col_filter, col_date, col_count = st.columns([2, 2, 1])
 with col_filter:
-    status_filter = st.radio("筛选状态", ["全部", "待处理", "已生成"], index=1, horizontal=True)
+    # key 固定，防止本地备份警告出现/消失时 widget 位置变动导致状态错乱
+    # index=0 默认显示全部，避免全部已生成时列表空白让用户困惑
+    status_filter = st.radio(
+        "筛选状态", ["全部", "待处理", "已生成"],
+        index=0, horizontal=True, key="order_status_filter"
+    )
 with col_date:
-    date_range = st.date_input("日期范围", value=[], label_visibility="visible")
+    date_range = st.date_input("日期范围", value=[], label_visibility="visible", key="order_date_range")
 with col_count:
-    st.metric("待处理", sum(1 for o in orders if o.get("status") == "待处理"))
+    pending_cnt = sum(1 for o in orders if o.get("status") == "待处理")
+    st.metric("待处理", pending_cnt)
 
 filtered = orders if status_filter == "全部" else [o for o in orders if o.get("status") == status_filter]
 
@@ -208,6 +214,13 @@ if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
     ]
 
 filtered = sorted(filtered, key=lambda o: o.get("submitted_at", ""), reverse=True)
+
+if not filtered:
+    if status_filter != "全部" or (isinstance(date_range, (list, tuple)) and len(date_range) == 2):
+        st.info("当前筛选条件下没有订单，请调整筛选")
+    else:
+        st.info("暂无订单")
+    st.stop()
 
 # ── 批量操作栏 ────────────────────────────────────────
 pending_orders = [o for o in orders if o.get("status") == "待处理"]
