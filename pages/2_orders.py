@@ -74,8 +74,6 @@ with st.sidebar:
         theme=_theme,
     )
 
-render_theme_fab(theme=_theme)
-
 try:
     api_key = st.secrets["KIMI_API_KEY"]
 except Exception:

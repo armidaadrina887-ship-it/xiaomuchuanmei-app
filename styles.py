@@ -268,16 +268,16 @@ a:hover { color: #FFB07A !important; text-decoration: none !important; }
   border-radius: 6px !important;
 }
 
-/* ─── 主题切换 FAB（已登录页，右上角圆形）────────────────
-   用 data-testid="element-container" 精确定位，防止 :has() 向上匹配祖先容器 */
-[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] {
+/* ─── 主题切换（topnav 最后一列，圆形按钮）─────────────
+   .xm-topnav-col 标记最后一列，CSS 定位到右上角 */
+.xm-topnav-col {
   position: fixed !important;
-  top: 14px !important;
-  right: 16px !important;
+  top: 12px !important;
+  right: 14px !important;
   z-index: 9999 !important;
-  width: auto !important;
+  width: 44px !important;
 }
-[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] [data-testid="stButton"] > button {
+.xm-topnav-col [data-testid="stButton"] > button {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
@@ -293,7 +293,7 @@ a:hover { color: #FFB07A !important; text-decoration: none !important; }
   line-height: 1 !important;
   color: inherit !important;
 }
-[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] [data-testid="stButton"] > button:hover {
+.xm-topnav-col [data-testid="stButton"] > button:hover {
   background: rgba(255,117,51,0.14) !important;
   border-color: rgba(255,117,51,0.55) !important;
   box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
@@ -715,8 +715,8 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 }
 ::-webkit-scrollbar { background: #F7F5F0; }
 ::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
-/* FAB 浅色模式背景微调 */
-[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] [data-testid="stButton"] > button {
+/* topnav 主题按钮浅色模式微调 */
+.xm-topnav-col [data-testid="stButton"] > button {
   background: rgba(0,0,0,0.04) !important;
   color: #333 !important;
 }
@@ -817,23 +817,17 @@ def render_sidebar_brand(username: str = "", theme: str = "dark"):
 
 
 def render_theme_fab(theme: str = "dark"):
-    """已登录页面右上角圆形主题切换按钮。
-    在页面最顶部（columns 之前）调用，CSS :has(.xm-fab-marker) 定位到右上角。
-    """
-    import streamlit as st
-    icon = "☀️" if theme == "dark" else "🌙"
-    st.markdown('<span class="xm-fab-marker"></span>', unsafe_allow_html=True)
-    if st.button(icon, key="xm_theme_fab"):
-        st.session_state["theme"] = "light" if theme == "dark" else "dark"
-        st.rerun()
+    """已登录页面主题切换按钮（在 render_topnav 内部调用，不需要单独调用）。"""
+    pass  # 功能已并入 render_topnav
 
 
 def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark"):
     """Top nav bar.  active: 'generate' | 'orders'
-    on_logout: callable — called when user clicks 退出.
+    主题切换按钮通过 .xm-topnav-col CSS class 固定在右上角。
     """
     import streamlit as st
-    c1, c2, _, c3 = st.columns([1, 1, 5, 1])
+    icon = "☀️" if theme == "dark" else "🌙"
+    c1, c2, _, c3, c_theme = st.columns([1.2, 1.2, 5, 1.2, 0.6])
     if c1.button(
         "生成",
         key="topnav_gen",
@@ -851,6 +845,13 @@ def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark")
     if c3.button("退出", key="topnav_logout", use_container_width=True):
         if on_logout:
             on_logout()
+    # 主题按钮在最后一列，CSS .xm-topnav-col 定位到右上角
+    with c_theme:
+        st.markdown('<div class="xm-topnav-col">', unsafe_allow_html=True)
+        if st.button(icon, key="topnav_theme"):
+            st.session_state["theme"] = "light" if theme == "dark" else "dark"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def accent_badge(text: str) -> str:

@@ -208,8 +208,6 @@ with st.sidebar:
         theme=_theme,
     )
 
-render_theme_fab(theme=_theme)
-
 # ── 顶部标题 ──────────────────────────────────────
 col_title, col_ver = st.columns([5, 1])
 col_title.markdown(
