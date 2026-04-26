@@ -704,9 +704,14 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 [data-baseweb="calendar"] [role="gridcell"] * {
   background: transparent !important;
 }
-/* 悬停 */
-[data-baseweb="calendar"] [role="gridcell"] > div:hover {
-  background: rgba(255,117,51,0.10) !important;
+/* 悬停：覆盖所有可能的 hover 层（div / button / gridcell 本身）*/
+[data-baseweb="calendar"] [role="gridcell"]:hover > div,
+[data-baseweb="calendar"] [role="gridcell"] > div:hover,
+[data-baseweb="calendar"] [role="gridcell"] button:hover,
+[data-baseweb="calendar"] [role="gridcell"]:hover button,
+[data-baseweb="calendar"] [role="gridcell"]:hover * {
+  background: rgba(255,117,51,0.12) !important;
+  color: #1A1A1A !important;
 }
 /* 选中 / 区间内：浅橙色 */
 [data-baseweb="calendar"] [aria-selected="true"] > div {
