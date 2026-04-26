@@ -269,15 +269,8 @@ a:hover { color: #FFB07A !important; text-decoration: none !important; }
 }
 
 /* ─── 主题切换（topnav 最后一列，圆形按钮）─────────────
-   .xm-topnav-col 标记最后一列，CSS 定位到右上角 */
-.xm-topnav-col {
-  position: fixed !important;
-  top: 12px !important;
-  right: 14px !important;
-  z-index: 9999 !important;
-  width: 44px !important;
-}
-.xm-topnav-col [data-testid="stButton"] > button {
+   topnav 有 5 列，最后一列（:last-child）专用于主题按钮 */
+[data-testid="stHorizontalBlock"]:has([data-testid="column"]:nth-child(5)) > [data-testid="column"]:last-child [data-testid="stButton"] > button {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
@@ -293,7 +286,7 @@ a:hover { color: #FFB07A !important; text-decoration: none !important; }
   line-height: 1 !important;
   color: inherit !important;
 }
-.xm-topnav-col [data-testid="stButton"] > button:hover {
+[data-testid="stHorizontalBlock"]:has([data-testid="column"]:nth-child(5)) > [data-testid="column"]:last-child [data-testid="stButton"] > button:hover {
   background: rgba(255,117,51,0.14) !important;
   border-color: rgba(255,117,51,0.55) !important;
   box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
@@ -716,7 +709,7 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 ::-webkit-scrollbar { background: #F7F5F0; }
 ::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
 /* topnav 主题按钮浅色模式微调 */
-.xm-topnav-col [data-testid="stButton"] > button {
+[data-testid="stHorizontalBlock"]:has([data-testid="column"]:nth-child(5)) > [data-testid="column"]:last-child [data-testid="stButton"] > button {
   background: rgba(0,0,0,0.04) !important;
   color: #333 !important;
 }
@@ -845,13 +838,10 @@ def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark")
     if c3.button("退出", key="topnav_logout", use_container_width=True):
         if on_logout:
             on_logout()
-    # 主题按钮在最后一列，CSS .xm-topnav-col 定位到右上角
     with c_theme:
-        st.markdown('<div class="xm-topnav-col">', unsafe_allow_html=True)
         if st.button(icon, key="topnav_theme"):
             st.session_state["theme"] = "light" if theme == "dark" else "dark"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def accent_badge(text: str) -> str:
