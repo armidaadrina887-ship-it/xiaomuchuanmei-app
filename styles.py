@@ -267,6 +267,37 @@ a:hover { color: #FFB07A !important; text-decoration: none !important; }
   border: 1px solid var(--border) !important;
   border-radius: 6px !important;
 }
+
+/* ─── 主题切换 FAB（已登录页，右上角圆形）────────────────
+   通过 .xm-fab-marker 标记元素定位其下一个兄弟（按钮容器）*/
+div:has(.xm-fab-marker) + div {
+  position: fixed !important;
+  top: 14px !important;
+  right: 16px !important;
+  z-index: 9999 !important;
+  width: auto !important;
+}
+div:has(.xm-fab-marker) + div [data-testid="stButton"] > button {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  min-width: unset !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,117,51,0.28) !important;
+  transition: all 0.2s !important;
+  line-height: 1 !important;
+  color: inherit !important;
+}
+div:has(.xm-fab-marker) + div [data-testid="stButton"] > button:hover {
+  background: rgba(255,117,51,0.14) !important;
+  border-color: rgba(255,117,51,0.55) !important;
+  box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
+}
 </style>
 """
 
@@ -684,6 +715,11 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 }
 ::-webkit-scrollbar { background: #F7F5F0; }
 ::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
+/* FAB 浅色模式背景微调 */
+div:has(.xm-fab-marker) + div [data-testid="stButton"] > button {
+  background: rgba(0,0,0,0.04) !important;
+  color: #333 !important;
+}
 
 /* ── 日期选择器日历弹窗（覆盖 BaseUI 暗色主题）── */
 /* 策略：* 通配清掉 calendar 内所有元素的暗色背景，再精确恢复 */
@@ -780,14 +816,24 @@ def render_sidebar_brand(username: str = "", theme: str = "dark"):
         st.rerun()
 
 
-def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark"):
-    """Top nav bar.  active: 'generate' | 'orders'
-    on_logout: callable — called when user clicks 退出.
-    theme: current theme, used to render the toggle icon.
+def render_theme_fab(theme: str = "dark"):
+    """已登录页面右上角圆形主题切换按钮。
+    在页面最顶部（columns 之前）调用，CSS :has(.xm-fab-marker) 定位到右上角。
     """
     import streamlit as st
     icon = "☀️" if theme == "dark" else "🌙"
-    c1, c2, c_theme, _, c3 = st.columns([1, 1, 0.8, 4.2, 1])
+    st.markdown('<span class="xm-fab-marker"></span>', unsafe_allow_html=True)
+    if st.button(icon, key="xm_theme_fab"):
+        st.session_state["theme"] = "light" if theme == "dark" else "dark"
+        st.rerun()
+
+
+def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark"):
+    """Top nav bar.  active: 'generate' | 'orders'
+    on_logout: callable — called when user clicks 退出.
+    """
+    import streamlit as st
+    c1, c2, _, c3 = st.columns([1, 1, 5, 1])
     if c1.button(
         "生成",
         key="topnav_gen",
@@ -802,9 +848,6 @@ def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark")
         type="primary" if active == "orders" else "secondary",
     ):
         st.switch_page("pages/2_orders.py")
-    if c_theme.button(icon, key="topnav_theme", use_container_width=True):
-        st.session_state["theme"] = "light" if theme == "dark" else "dark"
-        st.rerun()
     if c3.button("退出", key="topnav_logout", use_container_width=True):
         if on_logout:
             on_logout()

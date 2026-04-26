@@ -20,7 +20,7 @@ from version import VERSION
 from styles import (
     DARK_CSS, LOGIN_EXTRA_CSS, LOGIN_SPLIT_CSS, LOGIN_LEFT_PANEL_HTML,
     ACCENT, accent_badge, section_title, SIDEBAR_BRAND_HTML,
-    render_topnav, get_theme_css, render_sidebar_brand,
+    render_topnav, render_theme_fab, get_theme_css, render_sidebar_brand,
 )
 
 _COOKIE_NAME = "xm_auth_v1"
@@ -207,6 +207,8 @@ with st.sidebar:
         username=st.session_state.get("username", ""),
         theme=_theme,
     )
+
+render_theme_fab(theme=_theme)
 
 # ── 顶部标题 ──────────────────────────────────────
 col_title, col_ver = st.columns([5, 1])
