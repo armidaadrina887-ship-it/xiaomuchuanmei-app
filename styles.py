@@ -718,13 +718,22 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 [data-baseweb="calendar"] [aria-selected="true"] > div * {
   color: #1A1A1A !important;
 }
-/* 今天：橙色实心圆（深色文字已无法看清，改白字）*/
+/* 今天：透明底 + 橙色描边圆圈，数字深色可读 */
 [data-baseweb="calendar"] [data-today="true"] > div {
-  background: #FF7533 !important;
+  background: transparent !important;
+  border: 2px solid #FF7533 !important;
   border-radius: 50% !important;
 }
 [data-baseweb="calendar"] [data-today="true"] > div,
 [data-baseweb="calendar"] [data-today="true"] > div * {
+  color: #1A1A1A !important;
+}
+/* 今天同时被选中：橙色填充，白字 */
+[data-baseweb="calendar"] [data-today="true"][aria-selected="true"] > div {
+  background: #FF7533 !important;
+  border-color: #FF7533 !important;
+}
+[data-baseweb="calendar"] [data-today="true"][aria-selected="true"] > div * {
   color: #fff !important;
 }
 /* 禁用/超出范围日期 */
