@@ -164,7 +164,7 @@ col_t.markdown(
 col_v.markdown(f"<br>{accent_badge('v' + VERSION)}", unsafe_allow_html=True)
 st.caption(now_beijing())
 
-render_topnav("orders", on_logout=_do_logout)
+render_topnav("orders", on_logout=_do_logout, theme=_theme)
 
 orders = load_orders()
 

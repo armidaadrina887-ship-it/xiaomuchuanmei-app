@@ -684,6 +684,53 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 }
 ::-webkit-scrollbar { background: #F7F5F0; }
 ::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
+
+/* ── 日期选择器日历弹窗（覆盖 BaseUI 暗色主题）── */
+[data-baseweb="calendar"] {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(180,110,50,0.22) !important;
+  border-radius: 6px !important;
+}
+[data-baseweb="calendar"] div,
+[data-baseweb="calendar"] span,
+[data-baseweb="calendar"] p,
+[data-baseweb="calendar"] h5,
+[data-baseweb="calendar"] h6 {
+  color: #1A1A1A !important;
+  background-color: transparent !important;
+}
+[data-baseweb="calendar"] button {
+  color: #1A1A1A !important;
+  background-color: transparent !important;
+}
+[data-baseweb="calendar"] button:hover {
+  background-color: rgba(255,117,51,0.10) !important;
+}
+/* 已选中日期 */
+[data-baseweb="calendar"] [aria-selected="true"] > div {
+  background-color: #FF7533 !important;
+}
+[data-baseweb="calendar"] [aria-selected="true"] > div,
+[data-baseweb="calendar"] [aria-selected="true"] > div * {
+  color: #fff !important;
+}
+/* 今天高亮 */
+[data-baseweb="calendar"] [data-today="true"] > div {
+  border: 1px solid rgba(255,117,51,0.5) !important;
+}
+/* 禁用日期（超出范围）*/
+[data-baseweb="calendar"] [aria-disabled="true"] span {
+  color: #CCC !important;
+}
+/* 日历底部"None"选择框 */
+[data-baseweb="calendar"] [data-baseweb="select"] > div:first-child {
+  background-color: #EEECE7 !important;
+  color: #1A1A1A !important;
+  border-color: rgba(180,110,50,0.22) !important;
+}
+[data-baseweb="calendar"] [data-baseweb="select"] span {
+  color: #1A1A1A !important;
+}
 </style>
 """
 
@@ -707,12 +754,14 @@ def render_sidebar_brand(username: str = "", theme: str = "dark"):
         st.rerun()
 
 
-def render_topnav(active: str = "generate", on_logout=None):
+def render_topnav(active: str = "generate", on_logout=None, theme: str = "dark"):
     """Top nav bar.  active: 'generate' | 'orders'
     on_logout: callable — called when user clicks 退出.
+    theme: current theme, used to render the toggle icon.
     """
     import streamlit as st
-    c1, c2, _, c3 = st.columns([1, 1, 5, 1])
+    icon = "☀️" if theme == "dark" else "🌙"
+    c1, c2, c_theme, _, c3 = st.columns([1, 1, 0.8, 4.2, 1])
     if c1.button(
         "生成",
         key="topnav_gen",
@@ -727,6 +776,9 @@ def render_topnav(active: str = "generate", on_logout=None):
         type="primary" if active == "orders" else "secondary",
     ):
         st.switch_page("pages/2_orders.py")
+    if c_theme.button(icon, key="topnav_theme", use_container_width=True):
+        st.session_state["theme"] = "light" if theme == "dark" else "dark"
+        st.rerun()
     if c3.button("退出", key="topnav_logout", use_container_width=True):
         if on_logout:
             on_logout()

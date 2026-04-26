@@ -223,7 +223,7 @@ col_ver.markdown(
 
 st.caption("粘贴客户信息表 → 自动识别行业 → 10批×3条生成 → 行业违禁词扫描 → 下载Word")
 
-render_topnav("generate", on_logout=_do_logout)
+render_topnav("generate", on_logout=_do_logout, theme=_theme)
 
 # ── API Key ───────────────────────────────────────
 api_key = None
