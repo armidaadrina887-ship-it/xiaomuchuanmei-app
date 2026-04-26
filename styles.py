@@ -269,15 +269,15 @@ a:hover { color: #FFB07A !important; text-decoration: none !important; }
 }
 
 /* ─── 主题切换 FAB（已登录页，右上角圆形）────────────────
-   通过 .xm-fab-marker 标记元素定位其下一个兄弟（按钮容器）*/
-div:has(.xm-fab-marker) + div {
+   用 data-testid="element-container" 精确定位，防止 :has() 向上匹配祖先容器 */
+[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] {
   position: fixed !important;
   top: 14px !important;
   right: 16px !important;
   z-index: 9999 !important;
   width: auto !important;
 }
-div:has(.xm-fab-marker) + div [data-testid="stButton"] > button {
+[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] [data-testid="stButton"] > button {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
@@ -293,7 +293,7 @@ div:has(.xm-fab-marker) + div [data-testid="stButton"] > button {
   line-height: 1 !important;
   color: inherit !important;
 }
-div:has(.xm-fab-marker) + div [data-testid="stButton"] > button:hover {
+[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] [data-testid="stButton"] > button:hover {
   background: rgba(255,117,51,0.14) !important;
   border-color: rgba(255,117,51,0.55) !important;
   box-shadow: 0 0 10px rgba(255,117,51,0.20) !important;
@@ -716,7 +716,7 @@ hr { border-color: rgba(180,110,50,0.18) !important; }
 ::-webkit-scrollbar { background: #F7F5F0; }
 ::-webkit-scrollbar-thumb { background: rgba(180,110,50,0.20); }
 /* FAB 浅色模式背景微调 */
-div:has(.xm-fab-marker) + div [data-testid="stButton"] > button {
+[data-testid="element-container"]:has(.xm-fab-marker) + [data-testid="element-container"] [data-testid="stButton"] > button {
   background: rgba(0,0,0,0.04) !important;
   color: #333 !important;
 }
