@@ -1037,20 +1037,13 @@ def generate_scripts(client, api_key, progress_callback=None):
             for i, o in enumerate(outline)
         )
 
-    # ── 阶段二：10批×3条，每批重注入规则包 ────────────
+    # ── 阶段二：10批×3条，每批重注入规则包（最多重试2次）────────────
     # 每批只生成3条：防止模型在同批次内创意耗尽，导致第4-5条重复前几条
     all_scripts = []
     failed_batches = []
 
-    for batch_idx in range(10):
-        batch_start = batch_idx * 3 + 1
-        batch_end   = batch_start + 2
-        progress    = 0.1 + batch_idx * 0.08
-
-        if progress_callback:
-            progress_callback(progress, f"阶段二：正在生成第{batch_start}–{batch_end}条（批次{batch_idx+1}/10）...")
-
-        # 防重复摘要：标题+开场台词+开场场景，三维防克隆
+    def _build_batch_msg(batch_start, batch_end, batch_idx):
+        batch_end = batch_start + 2
         anti_repeat = ""
         if all_scripts:
             anti_repeat = "\n\n【防重复 — 以下条目已生成，本批禁止重复其核心事件、开场句式、开场镜头场景】\n" + "\n".join(
@@ -1062,10 +1055,8 @@ def generate_scripts(client, api_key, progress_callback=None):
                 )
                 for s in all_scripts
             )
-
-        # 本批大纲条目
         batch_outline = ""
-        if outline:
+        if outline and batch_idx is not None:
             batch_items = outline[batch_idx * 3: (batch_idx + 1) * 3]
             batch_outline = "\n\n【本批大纲（第{}-{}条）】\n".format(batch_start, batch_end) + "\n".join(
                 "{:02d}. [{}] {}".format(
@@ -1073,8 +1064,6 @@ def generate_scripts(client, api_key, progress_callback=None):
                 )
                 for i, o in enumerate(batch_items)
             )
-
-        # 行业专项违禁词注入
         industry_forbidden = ""
         ikeys = client.get('industry_keys', [])
         if ikeys:
@@ -1083,12 +1072,11 @@ def generate_scripts(client, api_key, progress_callback=None):
                 extra_words += _FW_DATA.get(k, [])
             if extra_words:
                 industry_forbidden = "\n\n【本行业专项违禁词 — 以下词绝对不能出现在口播或场景描述中】\n" + "、".join(extra_words[:40])
-
-        batch_msg = (
+        return (
             base_msg
             + outline_text
             + anti_repeat
-            + RULES_V2          # 每批重注入完整规则包
+            + RULES_V2
             + industry_forbidden
             + batch_outline
             + f"""
@@ -1125,8 +1113,23 @@ def generate_scripts(client, api_key, progress_callback=None):
 ]"""
         )
 
-        raw = kimi_call(batch_msg, max_tokens=8000)
-        parsed = extract_json_list(raw)
+    for batch_idx in range(10):
+        batch_start = batch_idx * 3 + 1
+        batch_end   = batch_start + 2
+        progress    = 0.1 + batch_idx * 0.08
+
+        if progress_callback:
+            progress_callback(progress, f"阶段二：正在生成第{batch_start}–{batch_end}条（批次{batch_idx+1}/10）...")
+
+        parsed = []
+        for attempt in range(3):  # 最多重试3次（首次+2次重试）
+            batch_msg = _build_batch_msg(batch_start, batch_end, batch_idx)
+            raw = kimi_call(batch_msg, max_tokens=8000)
+            parsed = extract_json_list(raw)
+            if parsed:
+                break
+            logger.warning("[batch %d] 第%d次尝试JSON解析失败，重试...", batch_idx + 1, attempt + 1)
+
         if parsed:
             for i, s in enumerate(parsed):
                 s['number'] = batch_start + i
@@ -1136,7 +1139,37 @@ def generate_scripts(client, api_key, progress_callback=None):
                     s['type'] = '其他'
             all_scripts.extend(parsed)
         else:
-            failed_batches.append(f"{batch_start}-{batch_end}")
+            failed_batches.append((batch_idx, batch_start, batch_end))
+            logger.error("[batch %d] 3次尝试均失败，批次 %d-%d 丢失", batch_idx + 1, batch_start, batch_end)
+
+    # ── 阶段二补：检测缺口，对缺失条号重新生成（最多补2轮）──
+    for fill_round in range(2):
+        existing_numbers = {s['number'] for s in all_scripts}
+        missing = [n for n in range(1, 31) if n not in existing_numbers]
+        if not missing:
+            break
+        if progress_callback:
+            progress_callback(0.88, f"⚠️ 检测到{len(missing)}条缺失（{missing}），正在补全（第{fill_round+1}轮）...")
+        logger.warning("[fill round %d] 缺失条号：%s", fill_round + 1, missing)
+        # 按3条一批补齐
+        fill_batches = [missing[i:i+3] for i in range(0, len(missing), 3)]
+        for fb in fill_batches:
+            fill_start = fb[0]
+            fill_end   = fb[-1]
+            fill_msg = _build_batch_msg(fill_start, fill_end, None) + f"\n\n【补全说明】本次只需生成第{'、'.join(str(n) for n in fb)}条，共{len(fb)}条，编号严格按照上述数字。"
+            raw = kimi_call(fill_msg, max_tokens=8000)
+            parsed = extract_json_list(raw)
+            if parsed:
+                for i, s in enumerate(parsed):
+                    s['number'] = fb[i] if i < len(fb) else fill_start + i
+                    if 'difficulty' not in s:
+                        s['difficulty'] = '深度版'
+                    if s.get('type') not in _VALID_SCRIPT_TYPES:
+                        s['type'] = '其他'
+                all_scripts.extend(parsed)
+                logger.info("[fill round %d] 补全 %s 成功", fill_round + 1, fb)
+            else:
+                logger.error("[fill round %d] 补全 %s 失败", fill_round + 1, fb)
 
     # ── 阶段三：程序级扫描 ─────────────────────────────
     opening_violations = scan_forbidden_openings(all_scripts)
@@ -1162,7 +1195,7 @@ def generate_scripts(client, api_key, progress_callback=None):
     all_scripts, zui_replacements = post_process_scripts(all_scripts, client.get('name', ''))
 
     if failed_batches:
-        client['failed_batches'] = failed_batches
+        client['failed_batches'] = [f"{s}-{e}" for _, s, e in failed_batches]
 
     # ── 阶段五：自动评分（仅展示，不触发重试）─────────────
     if progress_callback:
@@ -1170,8 +1203,13 @@ def generate_scripts(client, api_key, progress_callback=None):
     score_result = auto_score(all_scripts, client)
     client['score'] = score_result
 
+    final_count = len(all_scripts)
+    still_missing = [n for n in range(1, 31) if n not in {s['number'] for s in all_scripts}]
+    status_msg = f"生成完成，共{final_count}条，正在制作Word..."
+    if still_missing:
+        status_msg = f"生成完成，共{final_count}条（仍缺第{'、'.join(str(n) for n in still_missing)}条），正在制作Word..."
     if progress_callback:
-        progress_callback(0.98, f"生成完成，共{len(all_scripts)}条，正在制作Word...")
+        progress_callback(0.98, status_msg)
 
     client['violations']                    = word_violations
     client['scene_violations']              = scene_violations
